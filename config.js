@@ -6,6 +6,8 @@ window.ESTANTE_CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_twt3urXyCyNy6BlxKVAl0w_CgD6Bg5e",
   // themoviedb.org → Configurações → API → "Chave da API" (ou o "Token de leitura")
   TMDB_KEY: "783de049239ca003139c50c522baff79",
+  // Chave do RAWG: crie a chave grátis em rawg.io/apidocs (“Get API Key”).
+  RAWG_KEY: "d927455ce6804072a5683a3ba5f16b95",
   // Opcional: chave do Google Books (console.cloud.google.com), evita limite de buscas
   GOOGLE_BOOKS_KEY: "",
   // Mude para true depois de configurar o login com Google no Supabase
