@@ -176,9 +176,18 @@ function authError(error) {
   if (/invalid login credentials/i.test(m)) return "E-mail ou senha incorretos.";
   if (/email not confirmed/i.test(m)) return "Confirme seu e-mail pelo link que enviamos antes de entrar.";
   if (/already registered|already exists/i.test(m)) return "Já existe uma conta com este e-mail. Use a aba Entrar.";
-  if (/password/i.test(m) && /6|short|weak/i.test(m)) return "Use uma senha com pelo menos 6 caracteres.";
   if (/rate limit/i.test(m)) return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
-  return "Não deu para entrar agora. Verifique a conexão e tente de novo.";
+  if (/sending (confirmation|magic link)? ?email|confirmation email|not authorized/i.test(m))
+    return "O Supabase tentou enviar um e-mail de confirmação e não conseguiu. No painel do Supabase, desligue \"Confirm email\" em Authentication → Sign In / Providers → Email.";
+  if (/signups? not allowed|signups? (are )?disabled|email signups/i.test(m))
+    return "O cadastro está desativado no Supabase. Em Authentication → Sign In / Providers, ative \"Allow new users to sign up\" e o provedor Email.";
+  if (/invalid api key|no api key|apikey|jwt|unregistered api key/i.test(m))
+    return "A chave do Supabase no config.js não foi aceita. Confira SUPABASE_ANON_KEY (copie a chave pública de novo, sem espaços).";
+  if (/failed to fetch|networkerror|load failed|fetch/i.test(m) || (error && error.status === 0))
+    return "O site não conseguiu falar com o Supabase. Confira SUPABASE_URL no config.js: deve ser só https://xxxx.supabase.co. Se estiver certo, veja se o projeto não está pausado no painel do Supabase.";
+  if (/email.*invalid|invalid.*email|validate email/i.test(m)) return "O Supabase não aceitou este endereço de e-mail. Confira se está escrito certo.";
+  if (/password/i.test(m)) return "A senha não atende às regras do Supabase: " + m;
+  return "Não deu para entrar agora." + (m ? " Detalhe do Supabase: " + m : " Verifique a conexão e tente de novo.");
 }
 $("modeIn").addEventListener("click", () => setAuthMode(false));
 $("modeUp").addEventListener("click", () => setAuthMode(true));
@@ -191,12 +200,15 @@ $("authForm").addEventListener("submit", async (ev) => {
   try {
     if (state.signUp) {
       const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
-      if (error) show("authNotice", authError(error));
+      if (error) { console.error(error); show("authNotice", authError(error)); }
       else if (!data.session) show("authOk", "Conta criada. Enviamos um link para " + email + ". Confirme o e-mail e depois entre.");
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) show("authNotice", authError(error));
+      if (error) { console.error(error); show("authNotice", authError(error)); }
     }
+  } catch (e) {
+    console.error(e);
+    show("authNotice", authError(e));
   } finally { $("authSubmit").disabled = false; }
 });
 $("googleBtn").addEventListener("click", async () => {
@@ -521,7 +533,10 @@ function onSession(session) {
 
 (function start() {
   if (isPlaceholder(CFG.SUPABASE_URL) || isPlaceholder(CFG.SUPABASE_ANON_KEY) || !window.supabase) { showView("setup"); return; }
-  sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  // accept a pasted URL with extra path (".../rest/v1/") or spaces
+  let url = String(CFG.SUPABASE_URL).trim();
+  try { url = new URL(url).origin; } catch (e) {}
+  sb = window.supabase.createClient(url, String(CFG.SUPABASE_ANON_KEY).trim());
   if (CFG.LOGIN_GOOGLE) { $("googleBtn").hidden = false; $("orLine").hidden = false; }
   setAuthMode(false);
   // defer: supabase-js must not be called from inside its own auth callback
