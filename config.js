@@ -1,7 +1,7 @@
 // Preencha com os dados do seu projeto. Veja o LEIA-ME.md.
 window.ESTANTE_CONFIG = {
   // Supabase → Project Settings → API → "Project URL"
-  SUPABASE_URL: "https://qqmrfopncursdhbminof.supabase.co/rest/v1/",
+  SUPABASE_URL: "https://qqmrfopncursdhbminof.supabase.co",
   // Supabase → Project Settings → API → chave "anon" / "public" (pode ficar no site)
   SUPABASE_ANON_KEY: "sb_publishable_twt3urXyCyNy6BlxKVAl0w_CgD6Bg5e",
   // themoviedb.org → Configurações → API → "Chave da API" (ou o "Token de leitura")
