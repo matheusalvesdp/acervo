@@ -1,8 +1,15 @@
-# Minha Estante
+# Meu Acervo
 
-Site para anotar filmes, séries e livros que você quer ver e ler, venham de uma indicação ou de uma pesquisa sua. Cada pessoa cria a própria conta e só vê a própria lista. Capas e sinopses vêm do TMDB (filmes e séries) e do Google Books / Open Library (livros).
+Site para registrar coisas da vida, organizado em seções no menu lateral:
 
-Tudo usa planos gratuitos: GitHub Pages (site), Supabase (login e banco de dados) e TMDB (capas e sinopses).
+| Seção | Subseções | Imagem e informações automáticas |
+|---|---|---|
+| Estante | Filmes, Séries, Animes, Livros | TMDB (filmes, séries, animes), Google Books / Open Library (livros) |
+| Bebidas | Vinhos, Whiskys, Cervejas | Wikipédia (quando o rótulo for conhecido) |
+| Viagens | Países, Cidades | Wikipédia |
+| Jogos | PlayStation 5, Xbox, Nintendo, Steam, Mobile, Outras plataformas | RAWG |
+
+Cada pessoa cria a própria conta e só vê os próprios registros. Tudo usa planos gratuitos: GitHub Pages (site), Supabase (login e banco de dados), TMDB e RAWG (capas e informações). A Wikipédia não precisa de chave.
 
 ## Arquivos
 
@@ -33,6 +40,12 @@ Tudo usa planos gratuitos: GitHub Pages (site), Supabase (login e banco de dados
 2. Vá em **Configurações → API** e peça uma chave do tipo **Desenvolvedor / uso pessoal**. O formulário pede um endereço de site: pode colocar o do GitHub Pages do Passo 4 (`https://SEU-USUARIO.github.io/estante`).
 3. Copie a **Chave da API** (API Key).
 
+## Passo 2b — RAWG (capas e informações de jogos)
+
+1. Crie uma conta em **rawg.io** e abra **rawg.io/apidocs**.
+2. Clique em **Get API Key**, preencha o formulário (uso pessoal) e copie a chave.
+3. As descrições dos jogos vêm em inglês; você pode editar antes de salvar.
+
 ## Passo 3 — Colar as chaves
 
 Abra `config.js` num editor de texto (Bloco de Notas serve) e troque os textos `COLE_AQUI_...` pelos valores copiados. Mantenha as aspas:
@@ -41,9 +54,10 @@ Abra `config.js` num editor de texto (Bloco de Notas serve) e troque os textos `
 SUPABASE_URL: "https://abcd1234.supabase.co",
 SUPABASE_ANON_KEY: "eyJhbGciOi...",
 TMDB_KEY: "1a2b3c4d...",
+RAWG_KEY: "9f8e7d6c...",
 ```
 
-Essas chaves podem ficar visíveis no site: a do Supabase é pública por natureza (quem protege os dados são as regras do `supabase.sql`) e a do TMDB só consulta informações de filmes.
+Essas chaves podem ficar visíveis no site: a do Supabase é pública por natureza (quem protege os dados são as regras do `supabase.sql`) e as do TMDB e do RAWG só consultam informações de filmes e jogos.
 
 ## Passo 4 — Publicar no GitHub Pages (conta pessoal)
 
@@ -59,7 +73,7 @@ No Supabase, abra **Authentication → URL Configuration**:
 - **Site URL**: `https://SEU-USUARIO.github.io/estante/`
 - **Redirect URLs**: adicione o mesmo endereço.
 
-Pronto. Abra o site, clique em **Criar conta** e adicione o primeiro título. Para outras pessoas usarem, é só mandar o link: cada uma cria a própria conta.
+Pronto. Abra o site, clique em **Criar conta** e adicione o primeiro registro. Para outras pessoas usarem, é só mandar o link: cada uma cria a própria conta.
 
 ---
 
@@ -67,9 +81,19 @@ Pronto. Abra o site, clique em **Criar conta** e adicione o primeiro título. Pa
 
 Quando houver uma versão nova dos arquivos, repita o **Add file → Upload files** no repositório com os arquivos novos. **Não envie o `config.js` de novo** se ele não mudou, para não apagar suas chaves.
 
-## Passar a lista da página antiga do Claude
+### Atualização para o Meu Acervo (seções)
 
-Use **Importar lista** no rodapé do site com um arquivo `.json`. O formato é o mesmo do botão **Exportar lista**.
+1. No Supabase, abra **SQL Editor → New query**, cole o `supabase.sql` novo inteiro e clique em **Run**. Seus registros atuais vão para a seção Estante, sem perder nada.
+2. Faça o Passo 2b (chave do RAWG) e, no **seu** `config.js`, acrescente esta linha logo abaixo da linha do `TMDB_KEY`:
+   ```js
+   RAWG_KEY: "SUA_CHAVE_DO_RAWG",
+   ```
+   (Edite direto no GitHub: abra o `config.js` no repositório, clique no lápis, cole a linha e clique em **Commit changes**.)
+3. Envie os arquivos novos: `index.html`, `app.js`, `style.css` e `manifest.webmanifest`.
+
+## Importar e exportar
+
+Use **Importar** no rodapé do menu lateral com um arquivo `.json`. O formato é o mesmo do botão **Exportar (JSON)**.
 
 ## Melhorias opcionais
 
@@ -79,5 +103,5 @@ Use **Importar lista** no rodapé do site com um arquivo `.json`. O formato é o
 
 ## Limites dos planos gratuitos
 
-- **Supabase**: 500 MB de banco (dá para centenas de milhares de títulos) e 50 mil usuários ativos por mês. Projetos sem uso por 7 dias são pausados; basta entrar no painel do Supabase e clicar em "Restore".
+- **Supabase**: 500 MB de banco (dá para centenas de milhares de registros) e 50 mil usuários ativos por mês. Projetos sem uso por 7 dias são pausados; basta entrar no painel do Supabase e clicar em "Restore".
 - **GitHub Pages**: repositório precisa ser público no plano grátis.

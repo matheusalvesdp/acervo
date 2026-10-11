@@ -1,6 +1,6 @@
 {
-  "name": "Minha Estante",
-  "short_name": "Estante",
+  "name": "Meu Acervo",
+  "short_name": "Acervo",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f3f5f8",

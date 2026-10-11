@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Minha Estante</title>
-<meta name="description" content="Anote os filmes, séries e livros que você quer ver e ler, com capa, sinopse, status e nota.">
+<title>Meu Acervo</title>
+<meta name="description" content="Registre filmes, séries, livros, bebidas, viagens e jogos, com capa, informações, status e nota.">
 <meta name="theme-color" content="#2f4fd6">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
@@ -18,7 +18,7 @@
 <!-- Shown when config.js still has the placeholders -->
 <main class="wrap" id="setupView" hidden>
   <div class="setup">
-    <h1>Falta configurar a estante</h1>
+    <h1>Falta configurar o acervo</h1>
     <p>Abra o arquivo <code>config.js</code> e cole a URL e a chave do Supabase e a chave do TMDB. O passo a passo está no <code>LEIA-ME.md</code>.</p>
   </div>
 </main>
@@ -26,8 +26,8 @@
 <!-- Login -->
 <main class="wrap" id="authView" hidden>
   <section class="auth" aria-labelledby="authTitle">
-    <h1 id="authTitle">Minha Estante</h1>
-    <p>Anote os filmes, séries e livros que você quer ver e ler, venham de uma indicação ou de uma descoberta sua. Cada pessoa tem a própria estante.</p>
+    <h1 id="authTitle">Meu Acervo</h1>
+    <p>Registre os filmes, séries, livros, bebidas, viagens e jogos da sua vida. Cada pessoa tem o próprio acervo.</p>
     <button class="btn" type="button" id="googleBtn" hidden>Entrar com Google</button>
     <div class="or" id="orLine" hidden>ou</div>
     <nav class="tabs" aria-label="Acesso">
@@ -44,70 +44,90 @@
   </section>
 </main>
 
-<!-- The shelf -->
-<main class="wrap" id="appView" hidden>
-  <header>
-    <div>
-      <h1>Minha Estante</h1>
-      <p class="counts" id="counts">Carregando suas listas…</p>
+<!-- The app: sidebar + content -->
+<div class="shell" id="appView" hidden>
+  <div class="topbar">
+    <button class="btn iconbtn" type="button" id="menuBtn" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+    </button>
+    <span class="brand">Meu Acervo</span>
+  </div>
+  <div class="backdrop" id="backdrop" hidden></div>
+
+  <aside class="sidebar" id="sidebar" aria-label="Seções">
+    <a class="brand side-brand" href="#inicio">Meu Acervo</a>
+    <nav id="nav"></nav>
+    <div class="side-foot">
+      <span class="who-mail" id="whoEmail"></span>
+      <button class="linkbtn" type="button" id="signOut">Sair</button>
+      <div class="side-tools">
+        <button class="linkbtn" type="button" id="exportBtn">Exportar (JSON)</button>
+        <span class="linkbtn fileBtn">Importar<input type="file" id="importFile" accept="application/json,.json" aria-label="Importar registros em JSON"></span>
+      </div>
     </div>
-    <div class="head-actions">
-      <button class="btn btn-primary" id="addBtn" type="button">+ Adicionar título</button>
+  </aside>
+
+  <main class="content">
+    <div class="wrap">
+      <p class="notice" id="notice" hidden></p>
+
+      <!-- Home -->
+      <section id="homeView" hidden>
+        <header>
+          <div>
+            <h1>Início</h1>
+            <p class="counts" id="homeCounts"></p>
+          </div>
+        </header>
+        <div class="home-grid" id="homeGrid"></div>
+        <h2 class="h2">Adicionados recentemente</h2>
+        <section class="grid" id="recent"></section>
+        <div class="empty" id="homeEmpty" hidden>
+          <h2>Seu acervo está vazio</h2>
+          <p>Escolha uma seção no menu e adicione o primeiro registro.</p>
+        </div>
+      </section>
+
+      <!-- Section -->
+      <section id="sectionView" hidden>
+        <header>
+          <div>
+            <p class="eyebrow" id="secEyebrow"></p>
+            <h1 id="secTitle"></h1>
+            <p class="counts" id="counts"></p>
+          </div>
+          <button class="btn btn-primary" id="addBtn" type="button">+ Adicionar</button>
+        </header>
+        <nav class="tabs" id="subTabs" aria-label="Subseções"></nav>
+        <div class="toolbar">
+          <input type="search" id="q" placeholder="Buscar" aria-label="Buscar">
+          <select id="fStatus" aria-label="Filtrar por status"></select>
+          <select id="sort" aria-label="Ordenar">
+            <option value="recent">Mais recentes</option>
+            <option value="title">Nome (A–Z)</option>
+            <option value="rating">Melhor nota</option>
+          </select>
+        </div>
+        <section id="list" class="grid" aria-live="polite"></section>
+        <div id="empty" class="empty" hidden>
+          <h2 id="emptyTitle"></h2>
+          <p id="emptyText"></p>
+        </div>
+      </section>
     </div>
-  </header>
-  <div class="who"><span>Conectado como <b id="whoEmail"></b></span><button class="linkbtn" type="button" id="signOut">Sair</button></div>
-
-  <nav class="tabs" id="tabs" aria-label="Tipo">
-    <button class="tab" type="button" data-type="todos" aria-pressed="true">Tudo <span class="n" data-n="todos">0</span></button>
-    <button class="tab" type="button" data-type="filme" aria-pressed="false">Filmes <span class="n" data-n="filme">0</span></button>
-    <button class="tab" type="button" data-type="serie" aria-pressed="false">Séries <span class="n" data-n="serie">0</span></button>
-    <button class="tab" type="button" data-type="livro" aria-pressed="false">Livros <span class="n" data-n="livro">0</span></button>
-  </nav>
-
-  <div class="toolbar">
-    <input type="search" id="q" placeholder="Buscar por título, autor ou origem" aria-label="Buscar">
-    <select id="fStatus" aria-label="Filtrar por status">
-      <option value="">Todos os status</option>
-      <option value="fila">Na fila</option>
-      <option value="andamento">Em andamento</option>
-      <option value="concluido">Concluídos</option>
-    </select>
-    <select id="sort" aria-label="Ordenar">
-      <option value="recent">Mais recentes</option>
-      <option value="title">Título (A–Z)</option>
-      <option value="rating">Melhor nota</option>
-      <option value="by">Origem</option>
-    </select>
-  </div>
-
-  <p class="notice" id="notice" hidden></p>
-
-  <section id="list" class="grid" aria-live="polite"></section>
-  <div id="empty" class="empty">
-    <h2>Sua estante está esperando o primeiro título</h2>
-    <p>Adicione um filme, série ou livro. A estante busca a capa e a sinopse para você.</p>
-  </div>
-
-  <div class="tools">
-    <button class="btn" type="button" id="exportBtn">Exportar lista (JSON)</button>
-    <span class="btn fileBtn">Importar lista<input type="file" id="importFile" accept="application/json,.json" aria-label="Importar lista em JSON"></span>
-  </div>
-</main>
+  </main>
+</div>
 
 <dialog id="dlg" aria-labelledby="dlgTitle">
   <form class="edit" id="form" method="dialog">
-    <h2 id="dlgTitle">Novo título</h2>
+    <h2 id="dlgTitle">Novo registro</h2>
     <fieldset>
-      <legend>Tipo</legend>
-      <div class="seg">
-        <label><input type="radio" name="type" id="t-filme" value="filme" checked><span>Filme</span></label>
-        <label><input type="radio" name="type" id="t-serie" value="serie"><span>Série</span></label>
-        <label><input type="radio" name="type" id="t-livro" value="livro"><span>Livro</span></label>
-      </div>
+      <legend id="subLegend">Tipo</legend>
+      <div class="seg" id="subSeg"></div>
     </fieldset>
     <div class="field">
-      <div class="labelrow"><span>Título</span><button class="linkbtn" type="button" id="searchBtn">Buscar capa e sinopse</button></div>
-      <input id="fTitle" required maxlength="200" autocomplete="off" aria-label="Título">
+      <div class="labelrow"><span id="titleLabel">Nome</span><button class="linkbtn" type="button" id="searchBtn">Buscar capa e informações</button></div>
+      <input id="fTitle" required maxlength="200" autocomplete="off" aria-labelledby="titleLabel">
     </div>
     <div class="results" id="results" hidden></div>
     <p class="sub" id="searchState" hidden></p>
@@ -115,25 +135,19 @@
       <div id="coverPreview"></div>
       <div class="side">
         <span class="sub" id="coverHint"></span>
-        <label class="field"><span>Link da imagem da capa</span><input id="fCoverUrl" type="url" inputmode="url" placeholder="https://…" autocomplete="off"></label>
+        <label class="field"><span>Link da imagem</span><input id="fCoverUrl" type="url" inputmode="url" placeholder="https://…" autocomplete="off"></label>
       </div>
     </div>
+    <div class="fields" id="dynFields"></div>
     <div class="row">
-      <label class="field"><span id="creatorLabel">Direção</span><input id="fCreator" maxlength="200" autocomplete="off"></label>
-      <label class="field"><span>Ano</span><input id="fYear" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off"></label>
-    </div>
-    <div class="row">
-      <label class="field"><span>Origem</span><input id="fBy" maxlength="80" list="byList" autocomplete="off" placeholder="Ex.: Ana, pesquisa própria, podcast"></label>
       <label class="field"><span>Status</span><select id="fStat"></select></label>
+      <div class="field">
+        <span>Sua nota</span>
+        <div class="rate" id="rate" role="group" aria-label="Nota de 1 a 5"></div>
+      </div>
     </div>
-    <datalist id="byList"></datalist>
-    <label class="field"><span>Gênero</span><input id="fGenre" maxlength="80" autocomplete="off"></label>
-    <div class="field">
-      <span>Sua nota</span>
-      <div class="rate" id="rate" role="group" aria-label="Nota de 1 a 5"></div>
-    </div>
-    <label class="field"><span>Sinopse</span><textarea id="fSyn" maxlength="3000"></textarea></label>
-    <label class="field"><span>Anotações</span><textarea id="fNotes" maxlength="2000" placeholder="Por que quero ver, onde assistir, edição do livro…" style="min-height:70px"></textarea></label>
+    <label class="field"><span id="synLabel">Sinopse</span><textarea id="fSyn" maxlength="3000"></textarea></label>
+    <label class="field"><span id="notesLabel">Anotações</span><textarea id="fNotes" maxlength="2000" style="min-height:70px"></textarea></label>
     <p class="notice" id="formNotice" hidden></p>
     <div class="actions" id="actions">
       <button class="btn btn-danger" type="button" id="delBtn" hidden>Excluir</button>
@@ -142,7 +156,7 @@
       <button class="btn btn-primary" type="submit" id="saveBtn">Salvar</button>
     </div>
     <div class="confirm" id="confirmDel" hidden>
-      <span>Excluir este título?</span>
+      <span>Excluir este registro?</span>
       <span class="spacer"></span>
       <button class="btn" type="button" id="noDel">Manter</button>
       <button class="btn btn-danger" type="button" id="yesDel">Excluir de vez</button>
