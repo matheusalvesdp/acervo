@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minha Estante de Indicações</title>
+<meta name="description" content="Salve os filmes, séries e livros que te indicaram, com capa, sinopse, status e nota.">
+<meta name="theme-color" content="#2f4fd6">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Shown when config.js still has the placeholders -->
+<main class="wrap" id="setupView" hidden>
+  <div class="setup">
+    <h1>Falta configurar a estante</h1>
+    <p>Abra o arquivo <code>config.js</code> e cole a URL e a chave do Supabase e a chave do TMDB. O passo a passo está no <code>LEIA-ME.md</code>.</p>
+  </div>
+</main>
+
+<!-- Login -->
+<main class="wrap" id="authView" hidden>
+  <section class="auth" aria-labelledby="authTitle">
+    <h1 id="authTitle">Minha Estante de Indicações</h1>
+    <p>Guarde os filmes, séries e livros que te indicaram. Cada pessoa tem a própria estante.</p>
+    <button class="btn" type="button" id="googleBtn" hidden>Entrar com Google</button>
+    <div class="or" id="orLine" hidden>ou</div>
+    <nav class="tabs" aria-label="Acesso">
+      <button class="tab" type="button" id="modeIn" aria-pressed="true">Entrar</button>
+      <button class="tab" type="button" id="modeUp" aria-pressed="false">Criar conta</button>
+    </nav>
+    <form id="authForm">
+      <label class="field"><span>E-mail</span><input type="email" id="authEmail" autocomplete="email" required></label>
+      <label class="field"><span>Senha</span><input type="password" id="authPass" autocomplete="current-password" minlength="6" required></label>
+      <p class="notice" id="authNotice" hidden></p>
+      <p class="ok" id="authOk" hidden></p>
+      <button class="btn btn-primary" type="submit" id="authSubmit">Entrar</button>
+    </form>
+  </section>
+</main>
+
+<!-- The shelf -->
+<main class="wrap" id="appView" hidden>
+  <header>
+    <div>
+      <h1>Minha Estante de Indicações</h1>
+      <p class="counts" id="counts">Carregando suas listas…</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn btn-primary" id="addBtn" type="button">+ Adicionar indicação</button>
+    </div>
+  </header>
+  <div class="who"><span>Conectado como <b id="whoEmail"></b></span><button class="linkbtn" type="button" id="signOut">Sair</button></div>
+
+  <nav class="tabs" id="tabs" aria-label="Tipo">
+    <button class="tab" type="button" data-type="todos" aria-pressed="true">Tudo <span class="n" data-n="todos">0</span></button>
+    <button class="tab" type="button" data-type="filme" aria-pressed="false">Filmes <span class="n" data-n="filme">0</span></button>
+    <button class="tab" type="button" data-type="serie" aria-pressed="false">Séries <span class="n" data-n="serie">0</span></button>
+    <button class="tab" type="button" data-type="livro" aria-pressed="false">Livros <span class="n" data-n="livro">0</span></button>
+  </nav>
+
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Buscar por título, autor ou quem indicou" aria-label="Buscar">
+    <select id="fStatus" aria-label="Filtrar por status">
+      <option value="">Todos os status</option>
+      <option value="fila">Na fila</option>
+      <option value="andamento">Em andamento</option>
+      <option value="concluido">Concluídos</option>
+    </select>
+    <select id="sort" aria-label="Ordenar">
+      <option value="recent">Mais recentes</option>
+      <option value="title">Título (A–Z)</option>
+      <option value="rating">Melhor nota</option>
+      <option value="by">Quem indicou</option>
+    </select>
+  </div>
+
+  <p class="notice" id="notice" hidden></p>
+
+  <section id="list" class="grid" aria-live="polite"></section>
+  <div id="empty" class="empty">
+    <h2>Sua estante está esperando a primeira indicação</h2>
+    <p>Adicione um filme, série ou livro. A estante busca a capa e a sinopse para você.</p>
+  </div>
+
+  <div class="tools">
+    <button class="btn" type="button" id="exportBtn">Exportar lista (JSON)</button>
+    <span class="btn fileBtn">Importar lista<input type="file" id="importFile" accept="application/json,.json" aria-label="Importar lista em JSON"></span>
+  </div>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form class="edit" id="form" method="dialog">
+    <h2 id="dlgTitle">Nova indicação</h2>
+    <fieldset>
+      <legend>Tipo</legend>
+      <div class="seg">
+        <label><input type="radio" name="type" id="t-filme" value="filme" checked><span>Filme</span></label>
+        <label><input type="radio" name="type" id="t-serie" value="serie"><span>Série</span></label>
+        <label><input type="radio" name="type" id="t-livro" value="livro"><span>Livro</span></label>
+      </div>
+    </fieldset>
+    <div class="field">
+      <div class="labelrow"><span>Título</span><button class="linkbtn" type="button" id="searchBtn">Buscar capa e sinopse</button></div>
+      <input id="fTitle" required maxlength="200" autocomplete="off" aria-label="Título">
+    </div>
+    <div class="results" id="results" hidden></div>
+    <p class="sub" id="searchState" hidden></p>
+    <div class="coverrow">
+      <div id="coverPreview"></div>
+      <div class="side">
+        <span class="sub" id="coverHint"></span>
+        <label class="field"><span>Link da imagem da capa</span><input id="fCoverUrl" type="url" inputmode="url" placeholder="https://…" autocomplete="off"></label>
+      </div>
+    </div>
+    <div class="row">
+      <label class="field"><span id="creatorLabel">Direção</span><input id="fCreator" maxlength="200" autocomplete="off"></label>
+      <label class="field"><span>Ano</span><input id="fYear" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off"></label>
+    </div>
+    <div class="row">
+      <label class="field"><span>Indicado por</span><input id="fBy" maxlength="80" list="byList" autocomplete="off"></label>
+      <label class="field"><span>Status</span><select id="fStat"></select></label>
+    </div>
+    <datalist id="byList"></datalist>
+    <label class="field"><span>Gênero</span><input id="fGenre" maxlength="80" autocomplete="off"></label>
+    <div class="field">
+      <span>Sua nota</span>
+      <div class="rate" id="rate" role="group" aria-label="Nota de 1 a 5"></div>
+    </div>
+    <label class="field"><span>Sinopse</span><textarea id="fSyn" maxlength="3000"></textarea></label>
+    <label class="field"><span>Anotações</span><textarea id="fNotes" maxlength="2000" placeholder="Por que indicaram, onde assistir, edição do livro…" style="min-height:70px"></textarea></label>
+    <p class="notice" id="formNotice" hidden></p>
+    <div class="actions" id="actions">
+      <button class="btn btn-danger" type="button" id="delBtn" hidden>Excluir</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="cancelBtn">Cancelar</button>
+      <button class="btn btn-primary" type="submit" id="saveBtn">Salvar</button>
+    </div>
+    <div class="confirm" id="confirmDel" hidden>
+      <span>Excluir esta indicação?</span>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="noDel">Manter</button>
+      <button class="btn btn-danger" type="button" id="yesDel">Excluir de vez</button>
+    </div>
+    <p class="sub" id="stamp"></p>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
