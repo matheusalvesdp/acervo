@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Minha Estante de Indicações</title>
-<meta name="description" content="Salve os filmes, séries e livros que te indicaram, com capa, sinopse, status e nota.">
+<title>Minha Estante</title>
+<meta name="description" content="Anote os filmes, séries e livros que você quer ver e ler, com capa, sinopse, status e nota.">
 <meta name="theme-color" content="#2f4fd6">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
@@ -26,8 +26,8 @@
 <!-- Login -->
 <main class="wrap" id="authView" hidden>
   <section class="auth" aria-labelledby="authTitle">
-    <h1 id="authTitle">Minha Estante de Indicações</h1>
-    <p>Guarde os filmes, séries e livros que te indicaram. Cada pessoa tem a própria estante.</p>
+    <h1 id="authTitle">Minha Estante</h1>
+    <p>Anote os filmes, séries e livros que você quer ver e ler, venham de uma indicação ou de uma descoberta sua. Cada pessoa tem a própria estante.</p>
     <button class="btn" type="button" id="googleBtn" hidden>Entrar com Google</button>
     <div class="or" id="orLine" hidden>ou</div>
     <nav class="tabs" aria-label="Acesso">
@@ -48,11 +48,11 @@
 <main class="wrap" id="appView" hidden>
   <header>
     <div>
-      <h1>Minha Estante de Indicações</h1>
+      <h1>Minha Estante</h1>
       <p class="counts" id="counts">Carregando suas listas…</p>
     </div>
     <div class="head-actions">
-      <button class="btn btn-primary" id="addBtn" type="button">+ Adicionar indicação</button>
+      <button class="btn btn-primary" id="addBtn" type="button">+ Adicionar título</button>
     </div>
   </header>
   <div class="who"><span>Conectado como <b id="whoEmail"></b></span><button class="linkbtn" type="button" id="signOut">Sair</button></div>
@@ -65,7 +65,7 @@
   </nav>
 
   <div class="toolbar">
-    <input type="search" id="q" placeholder="Buscar por título, autor ou quem indicou" aria-label="Buscar">
+    <input type="search" id="q" placeholder="Buscar por título, autor ou origem" aria-label="Buscar">
     <select id="fStatus" aria-label="Filtrar por status">
       <option value="">Todos os status</option>
       <option value="fila">Na fila</option>
@@ -76,7 +76,7 @@
       <option value="recent">Mais recentes</option>
       <option value="title">Título (A–Z)</option>
       <option value="rating">Melhor nota</option>
-      <option value="by">Quem indicou</option>
+      <option value="by">Origem</option>
     </select>
   </div>
 
@@ -84,7 +84,7 @@
 
   <section id="list" class="grid" aria-live="polite"></section>
   <div id="empty" class="empty">
-    <h2>Sua estante está esperando a primeira indicação</h2>
+    <h2>Sua estante está esperando o primeiro título</h2>
     <p>Adicione um filme, série ou livro. A estante busca a capa e a sinopse para você.</p>
   </div>
 
@@ -96,7 +96,7 @@
 
 <dialog id="dlg" aria-labelledby="dlgTitle">
   <form class="edit" id="form" method="dialog">
-    <h2 id="dlgTitle">Nova indicação</h2>
+    <h2 id="dlgTitle">Novo título</h2>
     <fieldset>
       <legend>Tipo</legend>
       <div class="seg">
@@ -123,7 +123,7 @@
       <label class="field"><span>Ano</span><input id="fYear" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off"></label>
     </div>
     <div class="row">
-      <label class="field"><span>Indicado por</span><input id="fBy" maxlength="80" list="byList" autocomplete="off"></label>
+      <label class="field"><span>Origem</span><input id="fBy" maxlength="80" list="byList" autocomplete="off" placeholder="Ex.: Ana, pesquisa própria, podcast"></label>
       <label class="field"><span>Status</span><select id="fStat"></select></label>
     </div>
     <datalist id="byList"></datalist>
@@ -133,7 +133,7 @@
       <div class="rate" id="rate" role="group" aria-label="Nota de 1 a 5"></div>
     </div>
     <label class="field"><span>Sinopse</span><textarea id="fSyn" maxlength="3000"></textarea></label>
-    <label class="field"><span>Anotações</span><textarea id="fNotes" maxlength="2000" placeholder="Por que indicaram, onde assistir, edição do livro…" style="min-height:70px"></textarea></label>
+    <label class="field"><span>Anotações</span><textarea id="fNotes" maxlength="2000" placeholder="Por que quero ver, onde assistir, edição do livro…" style="min-height:70px"></textarea></label>
     <p class="notice" id="formNotice" hidden></p>
     <div class="actions" id="actions">
       <button class="btn btn-danger" type="button" id="delBtn" hidden>Excluir</button>
@@ -142,7 +142,7 @@
       <button class="btn btn-primary" type="submit" id="saveBtn">Salvar</button>
     </div>
     <div class="confirm" id="confirmDel" hidden>
-      <span>Excluir esta indicação?</span>
+      <span>Excluir este título?</span>
       <span class="spacer"></span>
       <button class="btn" type="button" id="noDel">Manter</button>
       <button class="btn btn-danger" type="button" id="yesDel">Excluir de vez</button>

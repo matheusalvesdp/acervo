@@ -96,7 +96,7 @@ function render() {
   const pend = all.filter((i) => i.status !== "concluido").length;
   $("counts").textContent = !state.loaded ? "Carregando suas listas…" : all.length
     ? `${c.filme} ${c.filme === 1 ? "filme" : "filmes"} · ${c.serie} ${c.serie === 1 ? "série" : "séries"} · ${c.livro} ${c.livro === 1 ? "livro" : "livros"} · ${pend} na fila ou em andamento`
-    : "Nenhuma indicação salva ainda";
+    : "Nenhum título salvo ainda";
 
   const q = norm(state.q);
   const rows = all.filter((it) =>
@@ -128,7 +128,7 @@ function render() {
     const meta = [it.creator, it.year].filter(Boolean).join(", ");
     if (meta) body.appendChild(el("div", "meta", meta));
     if (it.genre) body.appendChild(el("div", "genre", it.genre));
-    if (it.by) { const m = el("div", "meta"); m.append("Indicado por "); m.appendChild(el("b", null, it.by)); body.appendChild(m); }
+    if (it.by) { const m = el("div", "meta"); m.append("Origem: "); m.appendChild(el("b", null, it.by)); body.appendChild(m); }
     if (it.rating) body.appendChild(stars(it.rating));
     if (it.synopsis) body.appendChild(el("p", "syn", it.synopsis));
     if (it.notes) body.appendChild(el("p", "mynote", it.notes));
@@ -142,7 +142,7 @@ function render() {
     empty.querySelector("h2").textContent = "Nada encontrado com esses filtros";
     empty.querySelector("p").textContent = "Tente outra busca, outro status ou a aba Tudo.";
   } else {
-    empty.querySelector("h2").textContent = "Sua estante está esperando a primeira indicação";
+    empty.querySelector("h2").textContent = "Sua estante está esperando o primeiro título";
     empty.querySelector("p").textContent = "Adicione um filme, série ou livro. A estante busca a capa e a sinopse para você.";
   }
 }
@@ -399,7 +399,7 @@ function openDialog(item) {
   state.editing = item || null;
   const t = item ? item.type : (TYPES[state.tab] ? state.tab : "filme");
   $("t-" + t).checked = true;
-  $("dlgTitle").textContent = item ? "Editar indicação" : "Nova indicação";
+  $("dlgTitle").textContent = item ? "Editar título" : "Novo título";
   $("fTitle").value = item?.title || "";
   $("fCreator").value = item?.creator || "";
   $("fYear").value = item?.year || "";
@@ -416,7 +416,7 @@ function openDialog(item) {
   $("delBtn").hidden = !item;
   $("confirmDel").hidden = true; $("actions").hidden = false;
   $("stamp").textContent = item?.createdAt ? "Adicionado em " + new Date(item.createdAt).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }) : "";
-  const names = [...new Set(state.items.map((i) => i.by).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const names = [...new Set(["Pesquisa própria", ...state.items.map((i) => i.by).filter(Boolean)])].sort((a, b) => a.localeCompare(b, "pt-BR"));
   $("byList").replaceChildren(...names.map((n) => { const o = document.createElement("option"); o.value = n; return o; }));
   $("dlg").showModal();
   $("fTitle").focus();
@@ -434,7 +434,7 @@ $("dlg").addEventListener("close", () => { clearTimeout(autoTimer); searchSeq++;
 $("form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const title = $("fTitle").value.trim();
-  if (!title) { show("formNotice", "Dê um título para a indicação."); return; }
+  if (!title) { show("formNotice", "Escreva o título antes de salvar."); return; }
   const year = $("fYear").value.trim();
   if (year && !/^\d{4}$/.test(year)) { show("formNotice", "Use quatro dígitos para o ano, por exemplo 2024."); return; }
   const coverRaw = $("fCoverUrl").value.trim();
@@ -493,7 +493,7 @@ $("importFile").addEventListener("change", async (ev) => {
     if (when && !isNaN(Date.parse(when))) r.created_at = new Date(when).toISOString();
     return r;
   });
-  if (!rows.length) { show("notice", "Não encontrei indicações nesse arquivo."); return; }
+  if (!rows.length) { show("notice", "Não encontrei títulos nesse arquivo."); return; }
   show("notice", "");
   for (let i = 0; i < rows.length; i += 100) {
     const { error } = await sb.from("items").insert(rows.slice(i, i + 100));

@@ -1,6 +1,6 @@
-# Minha Estante de Indicações
+# Minha Estante
 
-Site para guardar filmes, séries e livros que te indicaram. Cada pessoa cria a própria conta e só vê a própria lista. Capas e sinopses vêm do TMDB (filmes e séries) e do Google Books / Open Library (livros).
+Site para anotar filmes, séries e livros que você quer ver e ler, venham de uma indicação ou de uma pesquisa sua. Cada pessoa cria a própria conta e só vê a própria lista. Capas e sinopses vêm do TMDB (filmes e séries) e do Google Books / Open Library (livros).
 
 Tudo usa planos gratuitos: GitHub Pages (site), Supabase (login e banco de dados) e TMDB (capas e sinopses).
 
@@ -59,7 +59,7 @@ No Supabase, abra **Authentication → URL Configuration**:
 - **Site URL**: `https://SEU-USUARIO.github.io/estante/`
 - **Redirect URLs**: adicione o mesmo endereço.
 
-Pronto. Abra o site, clique em **Criar conta** e adicione a primeira indicação. Para outras pessoas usarem, é só mandar o link: cada uma cria a própria conta.
+Pronto. Abra o site, clique em **Criar conta** e adicione o primeiro título. Para outras pessoas usarem, é só mandar o link: cada uma cria a própria conta.
 
 ---
 
@@ -79,5 +79,5 @@ Use **Importar lista** no rodapé do site com um arquivo `.json`. O formato é o
 
 ## Limites dos planos gratuitos
 
-- **Supabase**: 500 MB de banco (dá para centenas de milhares de indicações) e 50 mil usuários ativos por mês. Projetos sem uso por 7 dias são pausados; basta entrar no painel do Supabase e clicar em "Restore".
+- **Supabase**: 500 MB de banco (dá para centenas de milhares de títulos) e 50 mil usuários ativos por mês. Projetos sem uso por 7 dias são pausados; basta entrar no painel do Supabase e clicar em "Restore".
 - **GitHub Pages**: repositório precisa ser público no plano grátis.
