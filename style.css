@@ -233,3 +233,5 @@ body { margin: 0; }
 #discoverView header { margin-bottom: 6px; }
 .check input { width: auto; margin: 0; accent-color: var(--accent); }
 #discList .card .btn { justify-self: start; }
+.disc-filters { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+#discGenre { width: auto; min-width: 200px; flex: 0 1 260px; }

@@ -771,11 +771,14 @@ $("yesDel").addEventListener("click", async () => {
 const DISCOVER = {
   trending: { label: "Tendências da semana", path: (tv) => "/trending/" + (tv ? "tv" : "movie") + "/week" },
   now: { label: (tv) => (tv ? "No ar" : "Em cartaz"), path: (tv) => (tv ? "/tv/on_the_air" : "/movie/now_playing"), params: { region: "BR" } },
-  popular: { label: "Populares", path: (tv) => (tv ? "/tv/popular" : "/movie/popular"), params: { region: "BR" } },
-  top: { label: "Mais bem avaliados", path: (tv) => (tv ? "/tv/top_rated" : "/movie/top_rated") },
+  popular: { label: "Populares", path: (tv) => (tv ? "/tv/popular" : "/movie/popular"), params: { region: "BR" },
+    byGenre: () => ({ sort_by: "popularity.desc" }) },
+  top: { label: "Mais bem avaliados", path: (tv) => (tv ? "/tv/top_rated" : "/movie/top_rated"),
+    byGenre: (tv) => ({ sort_by: "vote_average.desc", "vote_count.gte": tv ? "200" : "300" }) },
   foryou: { label: "Para você" },
 };
-const disc = { list: "trending", type: "filme", cache: {}, seq: 0 };
+// want/autoLeft: when a genre is filtered on our side, keep loading pages until enough titles show up
+const disc = { list: "trending", type: "filme", genre: "", cache: {}, genres: {}, want: 12, autoLeft: 4 };
 function tmdbItem(r, tv) {
   return {
     source: "tmdb", id: r.id, tv, title: tv ? r.name : r.title,
@@ -783,7 +786,22 @@ function tmdbItem(r, tv) {
     year: ((tv ? r.first_air_date : r.release_date) || "").slice(0, 4),
     cover: r.poster_path ? POSTER + r.poster_path : null,
     synopsis: r.overview || "", vote: r.vote_average || 0, votes: r.vote_count || 0,
+    genreIds: r.genre_ids || [],
   };
+}
+async function loadGenres() {
+  if (disc.genres.loading || disc.genres.filme) return;
+  disc.genres.loading = true;
+  try {
+    const [m, t] = await Promise.all([tmdb("/genre/movie/list", { language: "pt-BR" }), tmdb("/genre/tv/list", { language: "pt-BR" })]);
+    const sorted = (g) => (g || []).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    disc.genres = { filme: sorted(m.genres), serie: sorted(t.genres) };
+  } catch (e) { disc.genres = {}; return; }
+  if (state.section === "descobrir") renderDiscover();
+}
+function genreNames(r) {
+  const list = disc.genres[r.tv ? "serie" : "filme"] || [];
+  return r.genreIds.map((id) => (list.find((g) => g.id === id) || {}).name).filter(Boolean).slice(0, 3).join(", ");
 }
 function inMyList(r) {
   const type = r.tv ? "serie" : "filme";
@@ -811,12 +829,15 @@ async function forYou(tv) {
     .map((t) => ({ ...tmdbItem(t.r, tv), because: t.from }));
   return { results };
 }
+// popular and top rated ask TMDB for the genre directly; the other lists are filtered here
+const genreByApi = () => Boolean(disc.genre && DISCOVER[disc.list].byGenre);
+const discKey = () => disc.list + "/" + disc.type + (genreByApi() ? "/" + disc.genre : "");
 async function loadDiscover(more) {
   const tv = disc.type === "serie";
-  const key = disc.list + "/" + disc.type;
+  const key = discKey();
   const c = disc.cache[key] || (disc.cache[key] = { results: [], page: 0, total: 1 });
-  if (!more && c.page) return;
-  const seq = ++disc.seq;
+  if (c.loading || (!more && c.page)) return;
+  c.loading = true;
   $("discMore").hidden = true;
   show("discState", "Carregando…");
   try {
@@ -825,17 +846,18 @@ async function loadDiscover(more) {
       Object.assign(c, d, { page: 1, total: 1 });
     } else {
       const L = DISCOVER[disc.list];
-      const d = await tmdb(L.path(tv), { language: "pt-BR", page: String(c.page + 1), ...(L.params || {}) });
+      const params = { language: "pt-BR", page: String(c.page + 1) };
+      const path = genreByApi() ? (tv ? "/discover/tv" : "/discover/movie") : L.path(tv);
+      Object.assign(params, genreByApi() ? { with_genres: disc.genre, include_adult: "false", ...L.byGenre(tv) } : L.params || {});
+      const d = await tmdb(path, params);
       const seen = new Set(c.results.map((r) => r.id));
       c.results.push(...(d.results || []).filter((r) => !seen.has(r.id)).map((r) => tmdbItem(r, tv)));
       c.page = d.page || c.page + 1; c.total = Math.min(d.total_pages || 1, 20);
     }
-    if (seq === disc.seq) show("discState", "");
   } catch (e) {
     c.error = e.status === 429 ? "Muitas buscas seguidas. Espere um minuto e tente de novo." : "Não deu para carregar agora. Verifique a conexão e tente de novo.";
-    if (seq === disc.seq) show("discState", e.status === 429 ? "Muitas buscas seguidas. Espere um minuto e tente de novo." : "Não deu para carregar agora. Verifique a conexão e tente de novo.");
-  }
-  if (seq === disc.seq) renderDiscover();
+  } finally { c.loading = false; }
+  if (key === discKey()) renderDiscover();
 }
 function discCard(r) {
   const card = el("article", "card sec-estante");
@@ -847,8 +869,10 @@ function discCard(r) {
   body.appendChild(el("h3", null, r.title));
   const meta = [r.year, r.original && r.original !== r.title ? r.original : ""].filter(Boolean).join(" · ");
   if (meta) body.appendChild(el("div", "meta", meta));
+  const g = genreNames(r);
+  if (g) body.appendChild(el("div", "genre", g));
   if (r.votes >= 20) body.appendChild(el("div", "extra", "Nota TMDB " + r.vote.toFixed(1).replace(".", ",")));
-  if (r.because && r.because.length) body.appendChild(el("div", "genre", "Porque você gostou de " + r.because.join(" e ")));
+  if (r.because && r.because.length) body.appendChild(el("div", "extra", "Porque você gostou de " + r.because.join(" e ")));
   if (r.synopsis) body.appendChild(el("p", "syn", r.synopsis));
   if (inMyList(r)) body.appendChild(el("span", "status s-concluido", "Na sua lista"));
   else {
@@ -863,39 +887,62 @@ function discCard(r) {
   card.appendChild(body);
   return card;
 }
+function resetAuto() { disc.want = 12; disc.autoLeft = 4; }
 function renderDiscover() {
   const tabs = $("discTabs"); tabs.replaceChildren();
   Object.entries(DISCOVER).forEach(([k, v]) => {
     const b = el("button", "tab", typeof v.label === "function" ? v.label(disc.type === "serie") : v.label); b.type = "button";
     b.setAttribute("aria-pressed", String(disc.list === k));
-    b.addEventListener("click", () => { disc.list = k; renderDiscover(); });
+    b.addEventListener("click", () => { disc.list = k; resetAuto(); renderDiscover(); });
     tabs.appendChild(b);
   });
   const types = $("discType"); types.replaceChildren();
   [["filme", "Filmes"], ["serie", "Séries"]].forEach(([k, label]) => {
     const b = el("button", "tab", label); b.type = "button";
     b.setAttribute("aria-pressed", String(disc.type === k));
-    b.addEventListener("click", () => { disc.type = k; renderDiscover(); });
+    b.addEventListener("click", () => { disc.type = k; resetAuto(); renderDiscover(); });
     types.appendChild(b);
   });
   if (isPlaceholder(CFG.TMDB_KEY)) { show("discState", "Falta a chave do TMDB no config.js."); return; }
-  const key = disc.list + "/" + disc.type;
+
+  // genre select (the movie and series genre lists are different)
+  const genres = disc.genres[disc.type] || [];
+  if (disc.genre && genres.length && !genres.some((x) => String(x.id) === disc.genre)) disc.genre = "";
+  const sel = $("discGenre");
+  if (sel.dataset.for !== disc.type + ":" + genres.length) {
+    sel.replaceChildren(new Option("Todos os gêneros", ""), ...genres.map((x) => new Option(x.name, String(x.id))));
+    sel.dataset.for = disc.type + ":" + genres.length;
+  }
+  sel.value = disc.genre;
+  if (!disc.genres.filme) loadGenres();
+
+  const key = discKey();
   const c = disc.cache[key];
   if (c && c.error && !c.page) { delete disc.cache[key]; $("discList").replaceChildren(); show("discState", c.error); return; }
   if (!c || !c.page) { $("discList").replaceChildren(); loadDiscover(false); return; }
-  if (c.error) { show("discState", c.error); delete c.error; } else show("discState", "");
-  const hideMine = $("discHide").checked;
-  const rows = c.results.filter((r) => !(hideMine || disc.list === "foryou") || !inMyList(r));
+  const localGenre = disc.genre && !genreByApi() ? Number(disc.genre) : 0;
+  const hideMine = $("discHide").checked || disc.list === "foryou";
+  const rows = c.results.filter((r) => (!localGenre || r.genreIds.includes(localGenre)) && (!hideMine || !inMyList(r)));
   $("discList").replaceChildren(...rows.map(discCard));
-  $("discMore").hidden = disc.list === "foryou" || c.page >= c.total;
-  if (disc.list === "foryou") {
-    show("discState", c.noSeeds
-      ? "Dê nota 4 ou 5 (ou marque como " + (disc.type === "serie" ? "vista) em algumas séries" : "visto) em alguns filmes") + " da sua lista para receber recomendações."
-      : rows.length ? "" : "Nenhuma recomendação nova por enquanto.");
+  const canMore = disc.list !== "foryou" && c.page < c.total;
+  $("discMore").hidden = !canMore || c.loading;
+  if (c.error) { show("discState", c.error); delete c.error; return; }
+  if (localGenre && canMore && rows.length < disc.want && disc.autoLeft > 0) { disc.autoLeft--; loadDiscover(true); return; }
+  let msg = "";
+  if (disc.list === "foryou" && c.noSeeds) {
+    msg = "Dê nota 4 ou 5 (ou marque como " + (disc.type === "serie" ? "vista) em algumas séries" : "visto) em alguns filmes") + " da sua lista para receber recomendações.";
+  } else if (!rows.length) {
+    msg = localGenre ? "Nenhum título desse gênero nesta lista. Tente \"Populares\" ou \"Mais bem avaliados\", que buscam direto pelo gênero."
+      : disc.list === "foryou" ? "Nenhuma recomendação nova por enquanto." : "Nada para mostrar aqui.";
   }
+  show("discState", msg);
 }
-$("discMore").addEventListener("click", () => loadDiscover(true));
+$("discMore").addEventListener("click", () => {
+  disc.want = $("discList").children.length + 10; disc.autoLeft = 4;
+  loadDiscover(true);
+});
 $("discHide").addEventListener("change", renderDiscover);
+$("discGenre").addEventListener("change", (e) => { disc.genre = e.target.value; resetAuto(); renderDiscover(); });
 
 // ---------- export / import ----------
 $("exportBtn").addEventListener("click", () => {

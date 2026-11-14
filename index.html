@@ -99,7 +99,10 @@
         </header>
         <nav class="tabs" id="discType" aria-label="Filmes ou séries"></nav>
         <nav class="tabs tabs-sm" id="discTabs" aria-label="Listas"></nav>
-        <label class="check"><input type="checkbox" id="discHide"> Esconder o que já está na minha lista</label>
+        <div class="disc-filters">
+          <select id="discGenre" aria-label="Gênero"><option value="">Todos os gêneros</option></select>
+          <label class="check"><input type="checkbox" id="discHide"> Esconder o que já está na minha lista</label>
+        </div>
         <p class="sub" id="discState" hidden></p>
         <section id="discList" class="grid" aria-live="polite"></section>
         <button class="btn" type="button" id="discMore" hidden>Carregar mais</button>
