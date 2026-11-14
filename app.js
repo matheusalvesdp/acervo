@@ -13,7 +13,7 @@ const SECTIONS = {
   estante: {
     label: "Filmes e séries", item: "título", itemArt: "o primeiro título",
     subs: {
-      filme: { label: "Filmes", one: "Filme", src: "tmdb-movie", creator: "Direção" },
+      filme: { label: "Filmes", one: "Filme", src: "tmdb-movie", creator: "Direção", status: { fila: "Quero ver", concluido: "Visto" } },
       serie: { label: "Séries", one: "Série", src: "tmdb-tv", creator: "Criação", status: { ...ST_WATCH, concluido: "Vista" } },
     },
     status: ST_WATCH,
@@ -21,6 +21,8 @@ const SECTIONS = {
       { col: "creator", label: SECTIONS.estante.subs[sub].creator },
       { col: "year", label: "Ano", year: true },
       { col: "genre", label: "Gênero", full: true },
+      { key: "imdb", label: "Nota IMDb", hint: "Ex.: 7.8", num: true },
+      { key: "rt", label: "Rotten Tomatoes", hint: "Ex.: 93%" },
     ],
     titleLabel: "Título", synLabel: "Sinopse", notesLabel: "Anotações",
     notesHint: "Onde assistir, quem indicou, por que quero ver…",
@@ -31,6 +33,11 @@ const GENERIC_STATUS = { fila: "Na fila", andamento: "Em andamento", concluido: 
 const statusLabels = (section, sub) => (sub && SECTIONS[section].subs[sub]?.status) || SECTIONS[section].status;
 function sectionOfType(type) { return SECTION_KEYS.find((s) => SECTIONS[s].subs[type]) || "estante"; }
 const isShown = (it) => Boolean(SECTIONS[it.section]?.subs[it.type]);
+// details kept on save even though the form has no field for them
+const HIDDEN_DETAILS = ["imdbid", "tmdbid"];
+function score(v) { const n = parseFloat(String(v || "").replace(",", ".")); return isNaN(n) ? null : n; }
+function fmtImdb(v) { const n = score(v); return n == null ? "" : n.toFixed(1).replace(".", ","); }
+function fmtRt(v) { const n = score(v); return n == null ? "" : Math.round(n) + "%"; }
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -48,7 +55,7 @@ function svg(name, size) {
   return s;
 }
 function norm(s) { return (s || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
-function show(id, msg) { const n = $(id); n.textContent = msg || ""; n.hidden = !msg; }
+function show(id, msg, ok) { const n = $(id); n.textContent = msg || ""; n.hidden = !msg; if (id === "notice") n.className = ok ? "ok" : "notice"; }
 function stars(n) {
   const s = el("span", "stars"); s.setAttribute("aria-label", n + " de 5");
   for (let i = 1; i <= 5; i++) s.appendChild(el("span", i <= n ? "" : "off", "★"));
@@ -87,9 +94,10 @@ function coverEl(it, big) {
 // ---------- rows <-> items ----------
 function fromRow(r) {
   const section = SECTIONS[r.section] ? r.section : sectionOfType(r.type);
+  const labels = SECTIONS[section].subs[r.type] ? statusLabels(section, r.type) : null;
   return {
     id: r.id, section, type: r.type, title: r.title, creator: r.creator, year: r.year,
-    status: r.status, rating: r.rating, notes: r.notes, synopsis: r.synopsis, genre: r.genre,
+    status: !labels || labels[r.status] ? r.status : "fila", rating: r.rating, notes: r.notes, synopsis: r.synopsis, genre: r.genre,
     coverUrl: r.cover_url, details: r.details && typeof r.details === "object" ? r.details : {},
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
@@ -207,6 +215,9 @@ function card(it) {
   const meta = [it.creator, it.year].filter(Boolean).join(", ");
   if (meta) body.appendChild(el("div", "meta", meta));
   if (it.genre) body.appendChild(el("div", "genre", it.genre));
+  const d = it.details || {};
+  const sc = [fmtImdb(d.imdb) && "IMDb " + fmtImdb(d.imdb), fmtRt(d.rt) && "Rotten Tomatoes " + fmtRt(d.rt)].filter(Boolean).join(" · ");
+  if (sc) body.appendChild(el("div", "extra", sc));
   if (it.rating) body.appendChild(stars(it.rating));
   if (it.synopsis) body.appendChild(el("p", "syn", it.synopsis));
   if (it.notes) body.appendChild(el("p", "mynote", it.notes));
@@ -274,20 +285,31 @@ function renderSection() {
 
   // status filter
   const labels = state.sub ? statusLabels(s, state.sub) : Object.fromEntries(Object.keys(sec.status).map((k) => [k, GENERIC_STATUS[k]]));
-  const sel = $("fStatus");
-  if (sel.dataset.for !== s + "/" + state.sub) {
-    sel.replaceChildren(new Option("Todos os status", ""), ...Object.entries(labels).map(([k, v]) => new Option(v, k)));
-    sel.dataset.for = s + "/" + state.sub;
-    if (!labels[state.status]) state.status = "";
-    sel.value = state.status;
-  }
+  if (!labels[state.status]) state.status = "";
+  const byStatus = countBy(scope, "status");
+  const stTabs = $("statusTabs"); stTabs.replaceChildren();
+  [["", "Todos", scope.length], ...Object.entries(labels).map(([k, v]) => [k, v, byStatus[k] || 0])].forEach(([k, label, n]) => {
+    const b = el("button", "tab", label); b.type = "button";
+    b.appendChild(el("span", "n", String(n)));
+    b.setAttribute("aria-pressed", String(state.status === k));
+    b.addEventListener("click", () => { state.status = k; render(); });
+    stTabs.appendChild(b);
+  });
 
   const q = norm(state.q);
   const rows = scope.filter((it) =>
     (!state.status || it.status === state.status) &&
     (!q || norm([it.title, it.creator, it.notes, it.synopsis, it.genre, ...Object.values(it.details || {})].join(" ")).includes(q)));
+  // items without the value always go to the end
+  const desc = (f) => (a, b) => { const x = f(a), y = f(b); return x == null ? (y == null ? 0 : 1) : y == null ? -1 : y - x; };
+  const asc = (f) => (a, b) => { const x = f(a), y = f(b); return x == null ? (y == null ? 0 : 1) : y == null ? -1 : x - y; };
+  const year = (i) => score(i.year);
   const by = {
     title: (a, b) => (a.title || "").localeCompare(b.title || "", "pt-BR"),
+    "year-desc": desc(year),
+    "year-asc": asc(year),
+    imdb: desc((i) => score(i.details?.imdb)),
+    rt: desc((i) => score(i.details?.rt)),
     rating: (a, b) => (b.rating || 0) - (a.rating || 0) || (b.createdAt || "").localeCompare(a.createdAt || ""),
     recent: (a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""),
   };
@@ -427,7 +449,7 @@ async function tmdbSearch(q, tv) {
 async function workDetails(r) {
   if (r.source === "tmdb") {
     const path = (r.tv ? "/tv/" : "/movie/") + r.id;
-    const d = await tmdb(path, r.tv ? { language: "pt-BR" } : { language: "pt-BR", append_to_response: "credits" });
+    const d = await tmdb(path, { language: "pt-BR", append_to_response: r.tv ? "external_ids" : "credits,external_ids" });
     let synopsis = d.overview || "";
     if (!synopsis) { try { synopsis = (await tmdb(path, { language: "en-US" })).overview || ""; } catch (e) {} }
     const creator = r.tv ? (d.created_by || []).map((p) => p.name).join(", ")
@@ -436,10 +458,75 @@ async function workDetails(r) {
       title: r.tv ? d.name : d.title, creator, year: r.year,
       genre: (d.genres || []).slice(0, 2).map((g) => g.name).join(", "),
       synopsis, cover: d.poster_path ? POSTER + d.poster_path : r.cover,
+      tmdbid: String(r.id), imdbid: d.imdb_id || (d.external_ids && d.external_ids.imdb_id) || "",
     };
   }
   return r;
 }
+
+// IMDb and Rotten Tomatoes scores come from OMDb (omdbapi.com), looked up by IMDb id.
+async function omdbScores(imdbid) {
+  if (!imdbid || isPlaceholder(CFG.OMDB_KEY)) return null;
+  const u = new URL("https://www.omdbapi.com/");
+  u.searchParams.set("i", imdbid); u.searchParams.set("apikey", CFG.OMDB_KEY);
+  const d = await getJSON(u);
+  if (d.Response === "False") {
+    const e = new Error(d.Error || "OMDb"); e.omdb = /limit/i.test(d.Error || "") ? "limit" : /key/i.test(d.Error || "") ? "key" : "";
+    throw e;
+  }
+  const rt = (d.Ratings || []).find((x) => x.Source === "Rotten Tomatoes");
+  return { imdb: score(d.imdbRating) != null ? d.imdbRating : "", rt: rt ? rt.Value : "" };
+}
+// For items saved before scores existed: find the TMDB entry by title and year to get the IMDb id.
+async function findImdbId(it) {
+  const tv = it.type === "serie";
+  const params = { query: it.title, language: "pt-BR", include_adult: "false" };
+  if (it.year) params[tv ? "first_air_date_year" : "year"] = it.year;
+  const d = await tmdb(tv ? "/search/tv" : "/search/movie", params);
+  const r = (d.results || [])[0];
+  if (!r) return { imdbid: "", tmdbid: "" };
+  const ext = await tmdb((tv ? "/tv/" : "/movie/") + r.id + "/external_ids");
+  return { imdbid: ext.imdb_id || "", tmdbid: String(r.id) };
+}
+let fetchingScores = false;
+async function refreshScores() {
+  if (fetchingScores) return;
+  closeMenu();
+  if (isPlaceholder(CFG.OMDB_KEY)) { show("notice", "Falta a chave do OMDb no config.js para buscar as notas do IMDb e do Rotten Tomatoes. Veja o LEIA-ME.md."); return; }
+  if (isPlaceholder(CFG.TMDB_KEY)) { show("notice", "Falta a chave do TMDB no config.js."); return; }
+  const todo = state.items.filter((i) => !(i.details && i.details.imdb));
+  if (!todo.length) { show("notice", "Todos os títulos já têm nota do IMDb.", true); return; }
+  fetchingScores = true;
+  let ok = 0, miss = 0, stop = "";
+  try {
+    for (let n = 0; n < todo.length; n++) {
+      const it = todo[n];
+      show("notice", "Buscando notas… " + (n + 1) + " de " + todo.length, true);
+      try {
+        const details = { ...(it.details || {}) };
+        if (!details.imdbid) Object.assign(details, await findImdbId(it));
+        const s = details.imdbid ? await omdbScores(details.imdbid) : null;
+        if (s) { if (s.imdb) details.imdb = s.imdb; if (s.rt && !details.rt) details.rt = s.rt; }
+        const clean = cleanDetails(details);
+        if (JSON.stringify(clean) !== JSON.stringify(cleanDetails(it.details))) {
+          const { data, error } = await sb.from("items").update({ details: clean }).eq("id", it.id).select().single();
+          if (error) { stop = dbError(error); break; }
+          const saved = fromRow(data);
+          state.items = state.items.map((i) => (i.id === saved.id ? saved : i));
+        }
+        if (clean.imdb) ok++; else miss++;
+      } catch (e) {
+        if (e.omdb === "limit") { stop = "O OMDb chegou ao limite de buscas do dia (1.000). Tente de novo amanhã."; break; }
+        if (e.omdb === "key") { stop = "A chave do OMDb no config.js não foi aceita. Confira se você ativou a chave pelo link do e-mail."; break; }
+        if (e.status === 429) { stop = "Muitas buscas seguidas. Espere um minuto e tente de novo."; break; }
+        miss++;
+      }
+    }
+  } finally { fetchingScores = false; }
+  render();
+  show("notice", stop || ("Notas atualizadas: " + plural(ok, "título", "títulos") + " com nota" + (miss ? ", " + miss + " sem nota encontrada (preencha à mão, se quiser)." : ".")), !stop);
+}
+$("scoresBtn").addEventListener("click", refreshScores);
 
 let searchSeq = 0;
 function currentSub() { const c = document.querySelector('input[name="sub"]:checked'); return c ? c.value : Object.keys(SECTIONS[state.dlgSection].subs)[0]; }
@@ -483,6 +570,11 @@ function setField(col, value) {
   const inp = document.querySelector('[data-col="' + col + '"]');
   if (inp && value) inp.value = value;
 }
+function setDetail(key, value) {
+  const inp = document.querySelector('[data-key="' + key + '"]');
+  if (inp) inp.value = value || "";
+}
+let picked = {};
 async function pick(r) {
   show("searchState", "Carregando detalhes…");
   try {
@@ -494,7 +586,14 @@ async function pick(r) {
     if (d.synopsis) $("fSyn").value = d.synopsis;
     $("fCoverUrl").value = d.cover || "";
     $("results").hidden = true;
-    show("searchState", d.synopsis ? "" : "Não há descrição disponível para esta opção. Escreva uma se quiser.");
+    picked = { imdbid: d.imdbid || "", tmdbid: d.tmdbid || "" };
+    setDetail("imdb", ""); setDetail("rt", "");
+    let msg = d.synopsis ? "" : "Não há descrição disponível para esta opção. Escreva uma se quiser.";
+    try {
+      const s = await omdbScores(d.imdbid);
+      if (s) { setDetail("imdb", s.imdb); setDetail("rt", s.rt); }
+    } catch (e) { msg = (msg ? msg + " " : "") + "Não deu para buscar as notas do IMDb agora."; }
+    show("searchState", msg);
     drawCoverPreview();
   } catch (e) { show("searchState", "Não deu para carregar os detalhes. Tente outra opção."); }
 }
@@ -562,6 +661,7 @@ function drawCoverPreview() {
 }
 function openDialog(item, sectionKey) {
   state.editing = item || null;
+  picked = {};
   const s = item ? item.section : sectionKey || (SECTIONS[state.section] ? state.section : "estante");
   state.dlgSection = s;
   const sec = SECTIONS[s];
@@ -623,7 +723,8 @@ $("form").addEventListener("submit", async (ev) => {
     if (i.dataset.col) it[i.dataset.col] = i.value; else it.details[i.dataset.key] = i.value;
   });
   // drop detail keys that the current form no longer has
-  const allowed = new Set(SECTIONS[state.dlgSection].fields(it.type).filter((f) => f.key).map((f) => f.key));
+  Object.entries(picked).forEach(([k, v]) => { if (v) it.details[k] = v; });
+  const allowed = new Set([...HIDDEN_DETAILS, ...SECTIONS[state.dlgSection].fields(it.type).filter((f) => f.key).map((f) => f.key)]);
   Object.keys(it.details).forEach((k) => { if (!allowed.has(k)) delete it.details[k]; });
   const row = toRow(it);
   $("saveBtn").disabled = true;
@@ -687,7 +788,6 @@ $("importFile").addEventListener("change", async (ev) => {
 
 // ---------- toolbar ----------
 $("q").addEventListener("input", (e) => { state.q = e.target.value; render(); });
-$("fStatus").addEventListener("change", (e) => { state.status = e.target.value; render(); });
 $("sort").addEventListener("change", (e) => { state.sort = e.target.value; render(); });
 $("addBtn").addEventListener("click", () => openDialog(null));
 

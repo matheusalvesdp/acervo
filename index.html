@@ -61,6 +61,7 @@
       <span class="who-mail" id="whoEmail"></span>
       <button class="linkbtn" type="button" id="signOut">Sair</button>
       <div class="side-tools">
+        <button class="linkbtn" type="button" id="scoresBtn">Buscar notas (IMDb e Rotten Tomatoes)</button>
         <button class="linkbtn" type="button" id="exportBtn">Exportar (JSON)</button>
         <span class="linkbtn fileBtn">Importar<input type="file" id="importFile" accept="application/json,.json" aria-label="Importar filmes e séries em JSON"></span>
       </div>
@@ -99,13 +100,17 @@
           <button class="btn btn-primary" id="addBtn" type="button">+ Adicionar</button>
         </header>
         <nav class="tabs" id="subTabs" aria-label="Subseções"></nav>
+        <nav class="tabs tabs-sm" id="statusTabs" aria-label="Filtrar por status"></nav>
         <div class="toolbar">
           <input type="search" id="q" placeholder="Buscar" aria-label="Buscar">
-          <select id="fStatus" aria-label="Filtrar por status"></select>
           <select id="sort" aria-label="Ordenar">
-            <option value="recent">Mais recentes</option>
+            <option value="recent">Adicionados recentemente</option>
             <option value="title">Nome (A–Z)</option>
-            <option value="rating">Melhor nota</option>
+            <option value="year-desc">Lançamento: mais novos</option>
+            <option value="year-asc">Lançamento: mais antigos</option>
+            <option value="rating">Minha nota</option>
+            <option value="imdb">Nota IMDb</option>
+            <option value="rt">Rotten Tomatoes</option>
           </select>
         </div>
         <section id="list" class="grid" aria-live="polite"></section>

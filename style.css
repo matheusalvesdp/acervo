@@ -46,6 +46,7 @@ button { font: inherit; cursor: pointer; }
 .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .tab { border: 1px solid var(--line); background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 999px; font-weight: 600; display: inline-flex; gap: 8px; align-items: center; }
 .tab[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tabs-sm .tab { padding: 4px 12px; font-size: .9rem; }
 .tab .n { font-family: var(--font-mono); font-size: .75rem; font-variant-numeric: tabular-nums; opacity: .8; }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -225,3 +226,4 @@ body { margin: 0; }
 .fields .full { grid-column: 1 / -1; }
 @media (max-width: 480px) { .fields { grid-template-columns: 1fr; } }
 .extra { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
+.side-foot .linkbtn { text-align: left; }

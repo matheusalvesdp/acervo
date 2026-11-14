@@ -33,6 +33,14 @@ Cada pessoa cria a própria conta e só vê os próprios registros. Tudo usa pla
 2. Vá em **Configurações → API** e peça uma chave do tipo **Desenvolvedor / uso pessoal**. O formulário pede um endereço de site: pode colocar o do GitHub Pages do Passo 4 (`https://SEU-USUARIO.github.io/estante`).
 3. Copie a **Chave da API** (API Key).
 
+## Passo 2b — OMDb (notas do IMDb e do Rotten Tomatoes, opcional)
+
+1. Abra **omdbapi.com/apikey.aspx**, escolha **FREE (1,000 daily limit)**, preencha nome e e-mail e envie.
+2. Abra o e-mail que o OMDb manda e **clique no link de ativação**. Sem isso, a chave não funciona.
+3. Copie a chave (8 letras e números) que veio no e-mail.
+
+Sem essa chave o site funciona normalmente; você só não terá as notas automáticas (pode digitá-las à mão).
+
 ## Passo 3 — Colar as chaves
 
 Abra `config.js` num editor de texto (Bloco de Notas serve) e troque os textos `COLE_AQUI_...` pelos valores copiados. Mantenha as aspas:
@@ -41,6 +49,7 @@ Abra `config.js` num editor de texto (Bloco de Notas serve) e troque os textos `
 SUPABASE_URL: "https://abcd1234.supabase.co",
 SUPABASE_ANON_KEY: "eyJhbGciOi...",
 TMDB_KEY: "1a2b3c4d...",
+OMDB_KEY: "a1b2c3d4",
 ```
 
 Essas chaves podem ficar visíveis no site: a do Supabase é pública por natureza (quem protege os dados são as regras do `supabase.sql`) e a do TMDB só consulta informações de filmes e séries.
@@ -72,6 +81,17 @@ Quando houver uma versão nova dos arquivos, repita o **Add file → Upload file
 Envie os arquivos novos: `index.html`, `app.js`, `style.css`, `manifest.webmanifest` e `config.js` (as chaves do Supabase e do TMDB continuam as mesmas; só saíram as linhas do RAWG e do Google Books, que não são mais usadas).
 
 Não é preciso mexer no Supabase: seus filmes e séries continuam lá e aparecem normalmente. Se você tinha registrado livros, animes, bebidas, viagens ou jogos, eles **não são apagados** do banco, apenas deixam de aparecer no site. Para guardar uma cópia deles antes de atualizar, use **Exportar (JSON)** na versão anterior.
+
+### Atualização com filtros e notas do IMDb / Rotten Tomatoes
+
+1. Envie os arquivos novos: `index.html`, `app.js`, `style.css` e `LEIA-ME.md`. **Não envie o `config.js`.**
+2. Faça o Passo 2b (chave do OMDb) e, no **seu** `config.js` do GitHub, acrescente esta linha logo abaixo da linha do `TMDB_KEY` (clique no lápis para editar e depois em **Commit changes**):
+   ```js
+   OMDB_KEY: "SUA_CHAVE_DO_OMDB",
+   ```
+3. Abra o site e clique em **Buscar notas (IMDb e Rotten Tomatoes)**, no rodapé do menu lateral, para preencher as notas dos títulos que você já cadastrou. Os títulos novos já recebem as notas ao escolher a capa na busca.
+
+Não é preciso mexer no Supabase. Filmes que estavam como "Assistindo" passam a aparecer como "Quero ver" (o status de filmes agora é só "Quero ver" ou "Visto").
 
 ## Importar e exportar
 
