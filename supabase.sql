@@ -1,11 +1,12 @@
 -- Cole este script no Supabase: SQL Editor → New query → Run.
--- Cria a tabela das indicações e as regras que deixam cada pessoa
--- ver e alterar somente os próprios itens.
+-- Cria a tabela das indicações de filmes e séries e as regras que deixam
+-- cada pessoa ver e alterar somente os próprios itens.
+-- Pode rodar de novo sem medo: não apaga nem altera registros existentes.
 
 create table if not exists public.items (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  type text not null check (type in ('filme', 'serie', 'livro')),
+  type text not null check (type in ('filme', 'serie')),
   title text not null check (char_length(title) between 1 and 200),
   creator text not null default '' check (char_length(creator) <= 200),
   year text not null default '' check (year = '' or year ~ '^[0-9]{4}$'),
@@ -19,6 +20,10 @@ create table if not exists public.items (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Colunas usadas pelo site (já existem em bancos criados por versões anteriores).
+alter table public.items add column if not exists section text not null default 'estante';
+alter table public.items add column if not exists details jsonb not null default '{}'::jsonb;
 
 create index if not exists items_user_id_idx on public.items (user_id, created_at desc);
 

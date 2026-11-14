@@ -1,15 +1,8 @@
 # Meu Acervo
 
-Site para registrar coisas da vida, organizado em seções no menu lateral:
+Site para guardar indicações de **filmes e séries**, com capa, sinopse, status (quero ver, assistindo, visto) e nota. As capas e informações vêm automaticamente do TMDB.
 
-| Seção | Subseções | Imagem e informações automáticas |
-|---|---|---|
-| Estante | Filmes, Séries, Animes, Livros | TMDB (filmes, séries, animes), Google Books / Open Library (livros) |
-| Bebidas | Vinhos, Whiskys, Cervejas | Wikipédia (quando o rótulo for conhecido) |
-| Viagens | Países, Cidades | Wikipédia |
-| Jogos | PlayStation 5, Xbox, Nintendo, Steam, Mobile, Outras plataformas | RAWG |
-
-Cada pessoa cria a própria conta e só vê os próprios registros. Tudo usa planos gratuitos: GitHub Pages (site), Supabase (login e banco de dados), TMDB e RAWG (capas e informações). A Wikipédia não precisa de chave.
+Cada pessoa cria a própria conta e só vê os próprios registros. Tudo usa planos gratuitos: GitHub Pages (site), Supabase (login e banco de dados) e TMDB (capas e informações).
 
 ## Arquivos
 
@@ -40,12 +33,6 @@ Cada pessoa cria a própria conta e só vê os próprios registros. Tudo usa pla
 2. Vá em **Configurações → API** e peça uma chave do tipo **Desenvolvedor / uso pessoal**. O formulário pede um endereço de site: pode colocar o do GitHub Pages do Passo 4 (`https://SEU-USUARIO.github.io/estante`).
 3. Copie a **Chave da API** (API Key).
 
-## Passo 2b — RAWG (capas e informações de jogos)
-
-1. Crie uma conta em **rawg.io** e abra **rawg.io/apidocs**.
-2. Clique em **Get API Key**, preencha o formulário (uso pessoal) e copie a chave.
-3. As descrições dos jogos vêm em inglês; você pode editar antes de salvar.
-
 ## Passo 3 — Colar as chaves
 
 Abra `config.js` num editor de texto (Bloco de Notas serve) e troque os textos `COLE_AQUI_...` pelos valores copiados. Mantenha as aspas:
@@ -54,10 +41,9 @@ Abra `config.js` num editor de texto (Bloco de Notas serve) e troque os textos `
 SUPABASE_URL: "https://abcd1234.supabase.co",
 SUPABASE_ANON_KEY: "eyJhbGciOi...",
 TMDB_KEY: "1a2b3c4d...",
-RAWG_KEY: "9f8e7d6c...",
 ```
 
-Essas chaves podem ficar visíveis no site: a do Supabase é pública por natureza (quem protege os dados são as regras do `supabase.sql`) e as do TMDB e do RAWG só consultam informações de filmes e jogos.
+Essas chaves podem ficar visíveis no site: a do Supabase é pública por natureza (quem protege os dados são as regras do `supabase.sql`) e a do TMDB só consulta informações de filmes e séries.
 
 ## Passo 4 — Publicar no GitHub Pages (conta pessoal)
 
@@ -81,25 +67,20 @@ Pronto. Abra o site, clique em **Criar conta** e adicione o primeiro registro. P
 
 Quando houver uma versão nova dos arquivos, repita o **Add file → Upload files** no repositório com os arquivos novos. **Não envie o `config.js` de novo** se ele não mudou, para não apagar suas chaves.
 
-### Atualização para o Meu Acervo (seções)
+### Atualização para a versão só de filmes e séries
 
-1. No Supabase, abra **SQL Editor → New query**, cole o `supabase.sql` novo inteiro e clique em **Run**. Seus registros atuais vão para a seção Estante, sem perder nada.
-2. Faça o Passo 2b (chave do RAWG) e, no **seu** `config.js`, acrescente esta linha logo abaixo da linha do `TMDB_KEY`:
-   ```js
-   RAWG_KEY: "SUA_CHAVE_DO_RAWG",
-   ```
-   (Edite direto no GitHub: abra o `config.js` no repositório, clique no lápis, cole a linha e clique em **Commit changes**.)
-3. Envie os arquivos novos: `index.html`, `app.js`, `style.css` e `manifest.webmanifest`.
+Envie os arquivos novos: `index.html`, `app.js`, `style.css`, `manifest.webmanifest` e `config.js` (as chaves do Supabase e do TMDB continuam as mesmas; só saíram as linhas do RAWG e do Google Books, que não são mais usadas).
+
+Não é preciso mexer no Supabase: seus filmes e séries continuam lá e aparecem normalmente. Se você tinha registrado livros, animes, bebidas, viagens ou jogos, eles **não são apagados** do banco, apenas deixam de aparecer no site. Para guardar uma cópia deles antes de atualizar, use **Exportar (JSON)** na versão anterior.
 
 ## Importar e exportar
 
-Use **Importar** no rodapé do menu lateral com um arquivo `.json`. O formato é o mesmo do botão **Exportar (JSON)**.
+Use **Importar** no rodapé do menu lateral com um arquivo `.json`. O formato é o mesmo do botão **Exportar (JSON)**. Só filmes e séries são importados.
 
 ## Melhorias opcionais
 
 - **Entrar com Google**: no Google Cloud Console, crie credenciais OAuth (tipo "Aplicativo da Web") com o endereço de retorno que o Supabase mostra em **Authentication → Sign In / Providers → Google**. Cole o Client ID e o Secret no Supabase, ative o provedor e mude `LOGIN_GOOGLE` para `true` no `config.js`.
 - **Confirmação de e-mail**: configure um serviço de e-mail (por exemplo Resend, com plano grátis) em **Authentication → Emails → SMTP Settings** e religue "Confirm email".
-- **Muitos livros sem resultado**: o Google Books limita buscas sem chave. Crie uma chave da "Books API" no Google Cloud Console e cole em `GOOGLE_BOOKS_KEY`. Sem ela, o site usa o Open Library quando o Google Books não responde.
 
 ## Limites dos planos gratuitos
 

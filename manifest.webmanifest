@@ -1,5 +1,6 @@
 {
   "name": "Meu Acervo",
+  "description": "Indicações de filmes e séries",
   "short_name": "Acervo",
   "start_url": "./",
   "display": "standalone",

@@ -4,21 +4,17 @@ const CFG = window.ESTANTE_CONFIG || {};
 
 // ---------- sections ----------
 const ICONS = {
-  estante: '<path d="M5 4h3v16H5zM10 4h3v16h-3zM15.2 4.6l2.9-.8 3.9 15.5-2.9.8z" fill="currentColor"/>',
-  bebidas: '<path d="M7 3h10l-1 7a4 4 0 0 1-8 0zM12 14v5M8 21h8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-  viagens: '<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="10" r="2.2" fill="currentColor"/>',
-  jogos: '<path d="M7 8h10a4 4 0 0 1 4 4.5l-.6 3.6a2 2 0 0 1-3.4 1L15 15H9l-2 2.1a2 2 0 0 1-3.4-1L3 12.5A4 4 0 0 1 7 8z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M8 11v3M6.5 12.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15.5" cy="12" r="1" fill="currentColor"/><circle cx="17" cy="13.8" r="1" fill="currentColor"/>',
+  estante: '<rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 5v14M17 5v14M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4" stroke="currentColor" stroke-width="1.6"/>',
   inicio: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/>',
 };
 const ST_WATCH = { fila: "Quero ver", andamento: "Assistindo", concluido: "Visto" };
+// The database keeps section = "estante" for every row; only movies and series are shown.
 const SECTIONS = {
   estante: {
-    label: "Estante", item: "título", itemArt: "o primeiro título",
+    label: "Filmes e séries", item: "título", itemArt: "o primeiro título",
     subs: {
       filme: { label: "Filmes", one: "Filme", src: "tmdb-movie", creator: "Direção" },
       serie: { label: "Séries", one: "Série", src: "tmdb-tv", creator: "Criação", status: { ...ST_WATCH, concluido: "Vista" } },
-      anime: { label: "Animes", one: "Anime", src: "tmdb-anime", creator: "Estúdio" },
-      livro: { label: "Livros", one: "Livro", src: "books", creator: "Autoria", status: { fila: "Quero ler", andamento: "Lendo", concluido: "Lido" } },
     },
     status: ST_WATCH,
     fields: (sub) => [
@@ -27,73 +23,14 @@ const SECTIONS = {
       { col: "genre", label: "Gênero", full: true },
     ],
     titleLabel: "Título", synLabel: "Sinopse", notesLabel: "Anotações",
-    notesHint: "Onde assistir, edição do livro, por que quero ver…",
-  },
-  bebidas: {
-    label: "Bebidas", item: "bebida", itemArt: "a primeira bebida",
-    subs: {
-      vinho: { label: "Vinhos", one: "Vinho", src: "wiki", creator: "Vinícola" },
-      whisky: { label: "Whiskys", one: "Whisky", src: "wiki", creator: "Destilaria" },
-      cerveja: { label: "Cervejas", one: "Cerveja", src: "wiki", creator: "Cervejaria" },
-    },
-    status: { fila: "Quero provar", concluido: "Provei" },
-    fields: (sub) => [
-      { col: "creator", label: SECTIONS.bebidas.subs[sub].creator },
-      { key: "origin", label: "País / região", hint: "Ex.: Mendoza, Argentina" },
-      sub === "vinho" ? { col: "genre", label: "Uva", hint: "Ex.: Malbec" }
-        : sub === "whisky" ? { col: "genre", label: "Tipo", hint: "Ex.: Single malt, bourbon" }
-        : { col: "genre", label: "Estilo", hint: "Ex.: IPA, Pilsen" },
-      sub === "vinho" ? { col: "year", label: "Safra", year: true }
-        : sub === "whisky" ? { key: "age", label: "Idade", hint: "Ex.: 12 anos" }
-        : { key: "volume", label: "Volume", hint: "Ex.: 473 ml" },
-      { key: "abv", label: "Teor alcoólico", hint: "Ex.: 13,5%" },
-      { key: "price", label: "Preço", hint: "Ex.: R$ 120" },
-      { key: "where", label: "Onde comprei ou provei", full: true },
-    ],
-    titleLabel: "Nome", synLabel: "Descrição", notesLabel: "Notas de prova",
-    notesHint: "Aroma, sabor, harmonização…",
-  },
-  viagens: {
-    label: "Viagens", item: "destino", itemArt: "o primeiro destino",
-    subs: {
-      pais: { label: "Países", one: "País", src: "wiki" },
-      cidade: { label: "Cidades", one: "Cidade", src: "wiki", creator: "País" },
-    },
-    status: { fila: "Quero ir", andamento: "Planejando", concluido: "Fui" },
-    fields: (sub) => [
-      ...(sub === "cidade" ? [{ col: "creator", label: "País" }] : []),
-      { key: "when", label: "Quando", hint: "Ex.: jul/2024" },
-      { key: "with", label: "Com quem", full: sub === "cidade" },
-      { key: "highlights", label: "Lugares favoritos", full: true, hint: "Ex.: Mercado da Ribeira, Belém" },
-    ],
-    titleLabel: "Lugar", synLabel: "Sobre o lugar", notesLabel: "Anotações",
-    notesHint: "Dicas, roteiro, onde ficar…", wide: true,
-  },
-  jogos: {
-    label: "Jogos", item: "jogo", itemArt: "o primeiro jogo",
-    subs: {
-      ps5: { label: "PlayStation 5", one: "PS5", src: "rawg" },
-      xbox: { label: "Xbox", one: "Xbox", src: "rawg" },
-      nintendo: { label: "Nintendo", one: "Nintendo", src: "rawg" },
-      steam: { label: "Steam", one: "Steam", src: "rawg" },
-      mobile: { label: "Mobile", one: "Mobile", src: "rawg" },
-      outro: { label: "Outras plataformas", one: "Outra plataforma", src: "rawg" },
-    },
-    status: { fila: "Quero jogar", andamento: "Jogando", concluido: "Zerei", abandonado: "Larguei" },
-    fields: () => [
-      { col: "creator", label: "Estúdio" },
-      { col: "year", label: "Ano", year: true },
-      { col: "genre", label: "Gênero" },
-      { key: "hours", label: "Horas jogadas", num: true },
-    ],
-    titleLabel: "Jogo", synLabel: "Sobre o jogo", notesLabel: "Anotações",
-    notesHint: "Onde parei, troféus, dicas…",
+    notesHint: "Onde assistir, quem indicou, por que quero ver…",
   },
 };
 const SECTION_KEYS = Object.keys(SECTIONS);
-const GENERIC_STATUS = { fila: "Na fila", andamento: "Em andamento", concluido: "Concluídos", abandonado: "Abandonados" };
+const GENERIC_STATUS = { fila: "Na fila", andamento: "Em andamento", concluido: "Concluídos" };
 const statusLabels = (section, sub) => (sub && SECTIONS[section].subs[sub]?.status) || SECTIONS[section].status;
 function sectionOfType(type) { return SECTION_KEYS.find((s) => SECTIONS[s].subs[type]) || "estante"; }
+const isShown = (it) => Boolean(SECTIONS[it.section]?.subs[it.type]);
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -130,7 +67,7 @@ function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
 const PALETTE = [["#1f3a5f", "#f2d492"], ["#5b1e2d", "#f6d7c3"], ["#173f35", "#e9e4c9"], ["#2d2a4a", "#f0b87a"], ["#3d2c1e", "#e8d3a9"], ["#0f4c5c", "#ffd6a5"], ["#4a1942", "#f9c6c9"], ["#22313f", "#9ad1d4"]];
 function colorsFor(title) { let h = 0; for (const ch of title || "") h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; }
 function coverEl(it, big) {
-  const c = el("div", "cover" + (big ? " big" : "") + (SECTIONS[it.section]?.wide ? " wide" : ""));
+  const c = el("div", "cover" + (big ? " big" : ""));
   c.setAttribute("aria-hidden", "true");
   const url = safeHttps(it.coverUrl);
   if (url) {
@@ -249,7 +186,7 @@ function renderNav() {
 
 function statusLine(list) {
   const c = countBy(list, "status");
-  const words = { fila: ["na fila", "na fila"], andamento: ["em andamento", "em andamento"], concluido: ["concluído", "concluídos"], abandonado: ["abandonado", "abandonados"] };
+  const words = { fila: ["na fila", "na fila"], andamento: ["em andamento", "em andamento"], concluido: ["concluído", "concluídos"] };
   return Object.keys(words).filter((k) => c[k]).map((k) => c[k] + " " + words[k][c[k] === 1 ? 0 : 1]).join(" · ");
 }
 
@@ -267,15 +204,9 @@ function card(it) {
   top.appendChild(el("span", "status s-" + it.status, statusLabels(it.section, it.type)[it.status] || ""));
   body.appendChild(top);
   body.appendChild(el("h3", null, it.title));
-  const d = it.details || {};
-  const meta = [it.creator, d.origin, it.year, d.age].filter(Boolean).join(", ");
+  const meta = [it.creator, it.year].filter(Boolean).join(", ");
   if (meta) body.appendChild(el("div", "meta", meta));
   if (it.genre) body.appendChild(el("div", "genre", it.genre));
-  const extra = it.section === "bebidas" ? [d.price, d.abv, d.volume]
-    : it.section === "viagens" ? [d.when, d.with ? "com " + d.with : ""]
-    : it.section === "jogos" ? [d.hours ? d.hours + " h jogadas" : ""] : [];
-  const ex = extra.filter(Boolean).join(" · ");
-  if (ex) body.appendChild(el("div", "extra", ex));
   if (it.rating) body.appendChild(stars(it.rating));
   if (it.synopsis) body.appendChild(el("p", "syn", it.synopsis));
   if (it.notes) body.appendChild(el("p", "mynote", it.notes));
@@ -392,7 +323,8 @@ async function loadItems() {
     return;
   }
   show("notice", "");
-  state.items = data.map(fromRow);
+  // rows from removed lists (books, drinks, trips, games…) stay in the database but are not shown
+  state.items = data.map(fromRow).filter(isShown);
   state.loaded = true;
   render();
 }
@@ -479,77 +411,17 @@ const noKey = (name) => Object.assign(new Error("no key"), { noKey: name });
 const PROVIDERS = {
   async "tmdb-movie"(q) { return tmdbSearch(q, false); },
   async "tmdb-tv"(q) { return tmdbSearch(q, true); },
-  async "tmdb-anime"(q) { return tmdbSearch(q, true, true); },
-  async books(q) { return bookSearch(q); },
-  async rawg(q) {
-    if (isPlaceholder(CFG.RAWG_KEY)) throw noKey("RAWG");
-    const u = new URL("https://api.rawg.io/api/games");
-    u.searchParams.set("key", CFG.RAWG_KEY); u.searchParams.set("search", q); u.searchParams.set("page_size", "8");
-    const d = await getJSON(u);
-    return (d.results || []).map((r) => ({
-      source: "rawg", id: r.id, title: r.name, year: (r.released || "").slice(0, 4),
-      cover: safeHttps(r.background_image), genre: (r.genres || []).slice(0, 2).map((g) => g.name).join(", "),
-      sub: (r.platforms || []).slice(0, 4).map((p) => p.platform.name).join(", "),
-    }));
-  },
-  async wiki(q) {
-    const u = new URL("https://pt.wikipedia.org/w/api.php");
-    Object.entries({
-      action: "query", format: "json", origin: "*", generator: "search", gsrsearch: q, gsrlimit: "8",
-      prop: "pageimages|extracts|description", exintro: "1", explaintext: "1", exsentences: "3",
-      piprop: "thumbnail", pithumbsize: "500",
-    }).forEach(([k, v]) => u.searchParams.set(k, v));
-    const d = await getJSON(u);
-    return Object.values((d.query && d.query.pages) || {}).sort((a, b) => a.index - b.index).map((p) => ({
-      source: "wiki", id: p.pageid, title: p.title, sub: p.description || "",
-      cover: p.thumbnail ? safeHttps(p.thumbnail.source) : null, synopsis: (p.extract || "").trim(),
-    }));
-  },
 };
-async function tmdbSearch(q, tv, anime) {
+async function tmdbSearch(q, tv) {
   if (isPlaceholder(CFG.TMDB_KEY)) throw noKey("TMDB");
   const d = await tmdb(tv ? "/search/tv" : "/search/movie", { query: q, language: "pt-BR", include_adult: "false" });
-  let res = d.results || [];
-  if (anime) { const a = res.filter((r) => (r.genre_ids || []).includes(16)); if (a.length) res = a; }
-  return res.slice(0, 8).map((r) => ({
-    source: "tmdb", id: r.id, tv, anime,
+  return (d.results || []).slice(0, 8).map((r) => ({
+    source: "tmdb", id: r.id, tv,
     title: tv ? r.name : r.title,
     original: tv ? r.original_name : r.original_title,
     year: ((tv ? r.first_air_date : r.release_date) || "").slice(0, 4),
     cover: r.poster_path ? POSTER + r.poster_path : null,
     synopsis: r.overview || "",
-  }));
-}
-async function bookSearch(q) {
-  try {
-    const u = new URL("https://www.googleapis.com/books/v1/volumes");
-    u.searchParams.set("q", q); u.searchParams.set("maxResults", "8"); u.searchParams.set("printType", "books");
-    if (CFG.GOOGLE_BOOKS_KEY) u.searchParams.set("key", CFG.GOOGLE_BOOKS_KEY);
-    const d = await getJSON(u);
-    const out = (d.items || []).map((v) => {
-      const i = v.volumeInfo || {};
-      const img = i.imageLinks && (i.imageLinks.thumbnail || i.imageLinks.smallThumbnail);
-      return {
-        source: "gbooks", id: v.id,
-        title: i.title + (i.subtitle ? ": " + i.subtitle : ""),
-        creator: (i.authors || []).join(", "),
-        year: (i.publishedDate || "").slice(0, 4),
-        cover: img ? safeHttps(img.replace("&edge=curl", "")) : null,
-        synopsis: plainText(i.description),
-        genre: (i.categories || [])[0] || "",
-      };
-    });
-    if (out.length) return out;
-  } catch (e) { /* Google Books unavailable or rate limited: try Open Library */ }
-  const u = new URL("https://openlibrary.org/search.json");
-  u.searchParams.set("q", q); u.searchParams.set("limit", "8");
-  u.searchParams.set("fields", "key,title,author_name,first_publish_year,cover_i");
-  const d = await getJSON(u);
-  return (d.docs || []).map((r) => ({
-    source: "openlibrary", id: r.key,
-    title: r.title, creator: (r.author_name || []).slice(0, 2).join(", "),
-    year: r.first_publish_year ? String(r.first_publish_year) : "",
-    cover: r.cover_i ? "https://covers.openlibrary.org/b/id/" + r.cover_i + "-L.jpg" : null,
   }));
 }
 async function workDetails(r) {
@@ -558,30 +430,12 @@ async function workDetails(r) {
     const d = await tmdb(path, r.tv ? { language: "pt-BR" } : { language: "pt-BR", append_to_response: "credits" });
     let synopsis = d.overview || "";
     if (!synopsis) { try { synopsis = (await tmdb(path, { language: "en-US" })).overview || ""; } catch (e) {} }
-    const creator = r.anime
-      ? (d.production_companies || []).slice(0, 2).map((p) => p.name).join(", ")
-      : r.tv ? (d.created_by || []).map((p) => p.name).join(", ")
+    const creator = r.tv ? (d.created_by || []).map((p) => p.name).join(", ")
       : ((d.credits && d.credits.crew) || []).filter((p) => p.job === "Director").map((p) => p.name).join(", ");
     return {
       title: r.tv ? d.name : d.title, creator, year: r.year,
       genre: (d.genres || []).slice(0, 2).map((g) => g.name).join(", "),
       synopsis, cover: d.poster_path ? POSTER + d.poster_path : r.cover,
-    };
-  }
-  if (r.source === "openlibrary") {
-    let synopsis = "";
-    try {
-      const w = await getJSON("https://openlibrary.org" + r.id + ".json");
-      synopsis = typeof w.description === "string" ? w.description : (w.description && w.description.value) || "";
-    } catch (e) {}
-    return { ...r, synopsis: synopsis.split("\n----------")[0].trim() };
-  }
-  if (r.source === "rawg") {
-    const d = await getJSON("https://api.rawg.io/api/games/" + r.id + "?key=" + encodeURIComponent(CFG.RAWG_KEY));
-    return {
-      ...r, creator: (d.developers || []).slice(0, 2).map((p) => p.name).join(", "),
-      synopsis: (d.description_raw || "").trim().slice(0, 1200),
-      cover: safeHttps(d.background_image) || r.cover,
     };
   }
   return r;
@@ -724,7 +578,6 @@ function openDialog(item, sectionKey) {
     lab.append(r, el("span", null, v.one));
     seg.appendChild(lab);
   });
-  $("subLegend").textContent = s === "jogos" ? "Plataforma" : "Tipo";
   $("dlgTitle").textContent = (item ? "Editar " : "Adicionar ") + sec.item;
   $("titleLabel").textContent = sec.titleLabel;
   $("synLabel").textContent = sec.synLabel;
@@ -769,7 +622,7 @@ $("form").addEventListener("submit", async (ev) => {
   document.querySelectorAll("#dynFields input").forEach((i) => {
     if (i.dataset.col) it[i.dataset.col] = i.value; else it.details[i.dataset.key] = i.value;
   });
-  // details that belong to another sub (e.g. "age" after switching whisky → vinho) are dropped
+  // drop detail keys that the current form no longer has
   const allowed = new Set(SECTIONS[state.dlgSection].fields(it.type).filter((f) => f.key).map((f) => f.key));
   Object.keys(it.details).forEach((k) => { if (!allowed.has(k)) delete it.details[k]; });
   const row = toRow(it);
@@ -817,13 +670,13 @@ $("importFile").addEventListener("change", async (ev) => {
   let list;
   try { list = JSON.parse(await file.text()); } catch (e) { show("notice", "Este arquivo não é um JSON válido."); return; }
   if (!Array.isArray(list)) list = list && Array.isArray(list.items) ? list.items : [];
-  const rows = list.filter((x) => x && typeof x === "object" && x.title && !x.example).map((x) => {
+  const rows = list.filter((x) => x && typeof x === "object" && x.title && !x.example && SECTIONS.estante.subs[x.type]).map((x) => {
     const r = toRow(x);
     const when = x.created_at || x.createdAt;
     if (when && !isNaN(Date.parse(when))) r.created_at = new Date(when).toISOString();
     return r;
   });
-  if (!rows.length) { show("notice", "Não encontrei registros nesse arquivo."); return; }
+  if (!rows.length) { show("notice", "Não encontrei filmes ou séries nesse arquivo."); return; }
   show("notice", "");
   for (let i = 0; i < rows.length; i += 100) {
     const { error } = await sb.from("items").insert(rows.slice(i, i + 100));
