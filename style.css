@@ -205,7 +205,7 @@ body { margin: 0; }
 
 .eyebrow { margin: 0 0 2px; font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--sc, var(--muted)); }
 .h2 { font-family: var(--font-display); font-weight: 500; font-size: 1.25rem; margin: 8px 0 0; }
-#homeView, #sectionView { display: grid; gap: 20px; }
+#homeView, #sectionView, #discoverView { display: grid; gap: 20px; }
 .home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .home-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
 .home-card h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; }
@@ -227,3 +227,9 @@ body { margin: 0; }
 @media (max-width: 480px) { .fields { grid-template-columns: 1fr; } }
 .extra { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
 .side-foot .linkbtn { text-align: left; }
+.check { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); font-size: .92rem; cursor: pointer; }
+#discMore { justify-self: center; }
+#discoverView { gap: 14px; }
+#discoverView header { margin-bottom: 6px; }
+.check input { width: auto; margin: 0; accent-color: var(--accent); }
+#discList .card .btn { justify-self: start; }

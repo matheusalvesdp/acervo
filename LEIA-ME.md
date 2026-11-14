@@ -2,6 +2,8 @@
 
 Site para guardar indicações de **filmes e séries**, com capa, sinopse, status (quero ver, assistindo, visto) e nota. As capas e informações vêm automaticamente do TMDB.
 
+A seção **Descobrir** mostra tendências da semana, filmes em cartaz (séries no ar), populares, mais bem avaliados e recomendações "Para você", baseadas nos títulos da sua lista com nota 4 ou 5 ou marcados como vistos. Tudo vem do TMDB, sem chave extra.
+
 Cada pessoa cria a própria conta e só vê os próprios registros. Tudo usa planos gratuitos: GitHub Pages (site), Supabase (login e banco de dados) e TMDB (capas e informações).
 
 ## Arquivos
@@ -92,6 +94,10 @@ Não é preciso mexer no Supabase: seus filmes e séries continuam lá e aparece
 3. Abra o site e clique em **Buscar notas (IMDb e Rotten Tomatoes)**, no rodapé do menu lateral, para preencher as notas dos títulos que você já cadastrou. Os títulos novos já recebem as notas ao escolher a capa na busca.
 
 Não é preciso mexer no Supabase. Filmes que estavam como "Assistindo" passam a aparecer como "Quero ver" (o status de filmes agora é só "Quero ver" ou "Visto").
+
+### Atualização com a seção Descobrir
+
+Envie os arquivos novos: `index.html`, `app.js`, `style.css` e `LEIA-ME.md`. **Não envie o `config.js`.** Não precisa de chave nova nem de mudança no Supabase.
 
 ## Importar e exportar
 

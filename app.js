@@ -5,6 +5,7 @@ const CFG = window.ESTANTE_CONFIG || {};
 // ---------- sections ----------
 const ICONS = {
   estante: '<rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 5v14M17 5v14M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4" stroke="currentColor" stroke-width="1.6"/>',
+  descobrir: '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M15.5 8.5l-2 5-5 2 2-5z" fill="currentColor"/>',
   inicio: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/>',
 };
 const ST_WATCH = { fila: "Quero ver", andamento: "Assistindo", concluido: "Visto" };
@@ -136,6 +137,7 @@ function toRow(it) {
 function parseHash() {
   const [s, sub] = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
   if (SECTIONS[s]) return { section: s, sub: SECTIONS[s].subs[sub] ? sub : "" };
+  if (s === "descobrir") return { section: s, sub: "" };
   return { section: "inicio", sub: "" };
 }
 function go(section, sub) {
@@ -173,6 +175,10 @@ function renderNav() {
   home.append(svg("inicio"), "Início");
   if (state.section === "inicio") home.setAttribute("aria-current", "page");
   nav.appendChild(home);
+  const dl = el("a", "nav-link"); dl.href = "#descobrir";
+  dl.append(svg("descobrir"), "Descobrir");
+  if (state.section === "descobrir") dl.setAttribute("aria-current", "page");
+  nav.appendChild(dl);
   SECTION_KEYS.forEach((s) => {
     const sec = SECTIONS[s];
     const a = el("a", "nav-link sec-" + s); a.href = "#" + s;
@@ -329,10 +335,13 @@ function renderSection() {
 
 function render() {
   renderNav();
-  const home = state.section === "inicio";
-  $("homeView").hidden = !home;
-  $("sectionView").hidden = home;
-  if (home) { document.title = "Meu Acervo"; renderHome(); } else renderSection();
+  const v = state.section === "inicio" ? "home" : state.section === "descobrir" ? "discover" : "section";
+  $("homeView").hidden = v !== "home";
+  $("sectionView").hidden = v !== "section";
+  $("discoverView").hidden = v !== "discover";
+  if (v === "home") { document.title = "Meu Acervo"; renderHome(); }
+  else if (v === "discover") { document.title = "Descobrir · Meu Acervo"; renderDiscover(); }
+  else renderSection();
 }
 
 // ---------- data ----------
@@ -478,15 +487,19 @@ async function omdbScores(imdbid) {
   return { imdb: score(d.imdbRating) != null ? d.imdbRating : "", rt: rt ? rt.Value : "" };
 }
 // For items saved before scores existed: find the TMDB entry by title and year to get the IMDb id.
-async function findImdbId(it) {
+async function tmdbFind(it) {
   const tv = it.type === "serie";
   const params = { query: it.title, language: "pt-BR", include_adult: "false" };
   if (it.year) params[tv ? "first_air_date_year" : "year"] = it.year;
   const d = await tmdb(tv ? "/search/tv" : "/search/movie", params);
   const r = (d.results || [])[0];
-  if (!r) return { imdbid: "", tmdbid: "" };
-  const ext = await tmdb((tv ? "/tv/" : "/movie/") + r.id + "/external_ids");
-  return { imdbid: ext.imdb_id || "", tmdbid: String(r.id) };
+  return r ? String(r.id) : "";
+}
+async function findImdbId(it) {
+  const tmdbid = await tmdbFind(it);
+  if (!tmdbid) return { imdbid: "", tmdbid: "" };
+  const ext = await tmdb((it.type === "serie" ? "/tv/" : "/movie/") + tmdbid + "/external_ids");
+  return { imdbid: ext.imdb_id || "", tmdbid };
 }
 let fetchingScores = false;
 async function refreshScores() {
@@ -659,7 +672,7 @@ function drawCoverPreview() {
     ? "Imagem encontrada. Para trocar, cole o link de outra imagem."
     : "Imagem ilustrada. Busque pelo nome ou cole o link de uma imagem.";
 }
-function openDialog(item, sectionKey) {
+function openDialog(item, sectionKey, subKey) {
   state.editing = item || null;
   picked = {};
   const s = item ? item.section : sectionKey || (SECTIONS[state.section] ? state.section : "estante");
@@ -667,7 +680,7 @@ function openDialog(item, sectionKey) {
   const sec = SECTIONS[s];
   $("form").className = "edit sec-" + s;
   const seg = $("subSeg"); seg.replaceChildren();
-  const startSub = item ? item.type : (s === state.section && state.sub) || Object.keys(sec.subs)[0];
+  const startSub = item ? item.type : subKey || (s === state.section && state.sub) || Object.keys(sec.subs)[0];
   Object.entries(sec.subs).forEach(([k, v]) => {
     const lab = el("label");
     const r = document.createElement("input"); r.type = "radio"; r.name = "sub"; r.value = k; r.id = "sub-" + k; r.checked = k === startSub;
@@ -753,6 +766,136 @@ $("yesDel").addEventListener("click", async () => {
   $("dlg").close();
   render();
 });
+
+// ---------- discover (TMDB lists) ----------
+const DISCOVER = {
+  trending: { label: "Tendências da semana", path: (tv) => "/trending/" + (tv ? "tv" : "movie") + "/week" },
+  now: { label: (tv) => (tv ? "No ar" : "Em cartaz"), path: (tv) => (tv ? "/tv/on_the_air" : "/movie/now_playing"), params: { region: "BR" } },
+  popular: { label: "Populares", path: (tv) => (tv ? "/tv/popular" : "/movie/popular"), params: { region: "BR" } },
+  top: { label: "Mais bem avaliados", path: (tv) => (tv ? "/tv/top_rated" : "/movie/top_rated") },
+  foryou: { label: "Para você" },
+};
+const disc = { list: "trending", type: "filme", cache: {}, seq: 0 };
+function tmdbItem(r, tv) {
+  return {
+    source: "tmdb", id: r.id, tv, title: tv ? r.name : r.title,
+    original: tv ? r.original_name : r.original_title,
+    year: ((tv ? r.first_air_date : r.release_date) || "").slice(0, 4),
+    cover: r.poster_path ? POSTER + r.poster_path : null,
+    synopsis: r.overview || "", vote: r.vote_average || 0, votes: r.vote_count || 0,
+  };
+}
+function inMyList(r) {
+  const type = r.tv ? "serie" : "filme";
+  return state.items.some((i) => i.type === type && ((i.details && i.details.tmdbid === String(r.id)) ||
+    (norm(i.title) === norm(r.title) && (!i.year || !r.year || i.year === r.year))));
+}
+// Recommendations from up to 6 titles the person liked (rated 4+ or watched).
+async function forYou(tv) {
+  const type = tv ? "serie" : "filme";
+  const seeds = state.items.filter((i) => i.type === type && (i.rating >= 4 || i.status === "concluido"))
+    .sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 6);
+  if (!seeds.length) return { results: [], noSeeds: true };
+  const tally = new Map();
+  for (const it of seeds) {
+    const id = (it.details && it.details.tmdbid) || await tmdbFind(it).catch(() => "");
+    if (!id) continue;
+    const d = await tmdb((tv ? "/tv/" : "/movie/") + id + "/recommendations", { language: "pt-BR" }).catch(() => ({}));
+    (d.results || []).forEach((r) => {
+      const t = tally.get(r.id) || { r, n: 0, from: [] };
+      t.n++; if (t.from.length < 2) t.from.push(it.title);
+      tally.set(r.id, t);
+    });
+  }
+  const results = [...tally.values()].sort((a, b) => b.n - a.n || (b.r.vote_average || 0) - (a.r.vote_average || 0))
+    .map((t) => ({ ...tmdbItem(t.r, tv), because: t.from }));
+  return { results };
+}
+async function loadDiscover(more) {
+  const tv = disc.type === "serie";
+  const key = disc.list + "/" + disc.type;
+  const c = disc.cache[key] || (disc.cache[key] = { results: [], page: 0, total: 1 });
+  if (!more && c.page) return;
+  const seq = ++disc.seq;
+  $("discMore").hidden = true;
+  show("discState", "Carregando…");
+  try {
+    if (disc.list === "foryou") {
+      const d = await forYou(tv);
+      Object.assign(c, d, { page: 1, total: 1 });
+    } else {
+      const L = DISCOVER[disc.list];
+      const d = await tmdb(L.path(tv), { language: "pt-BR", page: String(c.page + 1), ...(L.params || {}) });
+      const seen = new Set(c.results.map((r) => r.id));
+      c.results.push(...(d.results || []).filter((r) => !seen.has(r.id)).map((r) => tmdbItem(r, tv)));
+      c.page = d.page || c.page + 1; c.total = Math.min(d.total_pages || 1, 20);
+    }
+    if (seq === disc.seq) show("discState", "");
+  } catch (e) {
+    c.error = e.status === 429 ? "Muitas buscas seguidas. Espere um minuto e tente de novo." : "Não deu para carregar agora. Verifique a conexão e tente de novo.";
+    if (seq === disc.seq) show("discState", e.status === 429 ? "Muitas buscas seguidas. Espere um minuto e tente de novo." : "Não deu para carregar agora. Verifique a conexão e tente de novo.");
+  }
+  if (seq === disc.seq) renderDiscover();
+}
+function discCard(r) {
+  const card = el("article", "card sec-estante");
+  card.appendChild(coverEl({ section: "estante", type: r.tv ? "serie" : "filme", title: r.title, coverUrl: r.cover }));
+  const body = el("div", "body");
+  const top = el("div", "card-top");
+  top.appendChild(el("span", "kind", r.tv ? "Série" : "Filme"));
+  body.appendChild(top);
+  body.appendChild(el("h3", null, r.title));
+  const meta = [r.year, r.original && r.original !== r.title ? r.original : ""].filter(Boolean).join(" · ");
+  if (meta) body.appendChild(el("div", "meta", meta));
+  if (r.votes >= 20) body.appendChild(el("div", "extra", "Nota TMDB " + r.vote.toFixed(1).replace(".", ",")));
+  if (r.because && r.because.length) body.appendChild(el("div", "genre", "Porque você gostou de " + r.because.join(" e ")));
+  if (r.synopsis) body.appendChild(el("p", "syn", r.synopsis));
+  if (inMyList(r)) body.appendChild(el("span", "status s-concluido", "Na sua lista"));
+  else {
+    const add = el("button", "btn", "+ Adicionar à lista"); add.type = "button";
+    add.addEventListener("click", () => {
+      openDialog(null, "estante", r.tv ? "serie" : "filme");
+      $("fTitle").value = r.title;
+      pick(r);
+    });
+    body.appendChild(add);
+  }
+  card.appendChild(body);
+  return card;
+}
+function renderDiscover() {
+  const tabs = $("discTabs"); tabs.replaceChildren();
+  Object.entries(DISCOVER).forEach(([k, v]) => {
+    const b = el("button", "tab", typeof v.label === "function" ? v.label(disc.type === "serie") : v.label); b.type = "button";
+    b.setAttribute("aria-pressed", String(disc.list === k));
+    b.addEventListener("click", () => { disc.list = k; renderDiscover(); });
+    tabs.appendChild(b);
+  });
+  const types = $("discType"); types.replaceChildren();
+  [["filme", "Filmes"], ["serie", "Séries"]].forEach(([k, label]) => {
+    const b = el("button", "tab", label); b.type = "button";
+    b.setAttribute("aria-pressed", String(disc.type === k));
+    b.addEventListener("click", () => { disc.type = k; renderDiscover(); });
+    types.appendChild(b);
+  });
+  if (isPlaceholder(CFG.TMDB_KEY)) { show("discState", "Falta a chave do TMDB no config.js."); return; }
+  const key = disc.list + "/" + disc.type;
+  const c = disc.cache[key];
+  if (c && c.error && !c.page) { delete disc.cache[key]; $("discList").replaceChildren(); show("discState", c.error); return; }
+  if (!c || !c.page) { $("discList").replaceChildren(); loadDiscover(false); return; }
+  if (c.error) { show("discState", c.error); delete c.error; } else show("discState", "");
+  const hideMine = $("discHide").checked;
+  const rows = c.results.filter((r) => !(hideMine || disc.list === "foryou") || !inMyList(r));
+  $("discList").replaceChildren(...rows.map(discCard));
+  $("discMore").hidden = disc.list === "foryou" || c.page >= c.total;
+  if (disc.list === "foryou") {
+    show("discState", c.noSeeds
+      ? "Dê nota 4 ou 5 (ou marque como " + (disc.type === "serie" ? "vista) em algumas séries" : "visto) em alguns filmes") + " da sua lista para receber recomendações."
+      : rows.length ? "" : "Nenhuma recomendação nova por enquanto.");
+  }
+}
+$("discMore").addEventListener("click", () => loadDiscover(true));
+$("discHide").addEventListener("change", renderDiscover);
 
 // ---------- export / import ----------
 $("exportBtn").addEventListener("click", () => {

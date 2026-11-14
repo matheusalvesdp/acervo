@@ -89,6 +89,22 @@
         </div>
       </section>
 
+      <!-- Discover: TMDB lists and recommendations -->
+      <section id="discoverView" hidden>
+        <header>
+          <div>
+            <h1>Descobrir</h1>
+            <p class="counts">Indicações e tendências do momento, do TMDB</p>
+          </div>
+        </header>
+        <nav class="tabs" id="discType" aria-label="Filmes ou séries"></nav>
+        <nav class="tabs tabs-sm" id="discTabs" aria-label="Listas"></nav>
+        <label class="check"><input type="checkbox" id="discHide"> Esconder o que já está na minha lista</label>
+        <p class="sub" id="discState" hidden></p>
+        <section id="discList" class="grid" aria-live="polite"></section>
+        <button class="btn" type="button" id="discMore" hidden>Carregar mais</button>
+      </section>
+
       <!-- Section -->
       <section id="sectionView" hidden>
         <header>
